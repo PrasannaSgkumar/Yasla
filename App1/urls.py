@@ -42,5 +42,9 @@ urlpatterns = [
     # Feedback URLs
     path('feedbacks/', FeedbackView.as_view(), name='feedback-list-create'),
     path('feedbacks/<int:id>/', FeedbackDetailView.as_view(), name='feedback-detail'),
+
+    #login Api's
+    path('customer_login', CustomerLoginView.as_view(), name='customer-login'),
+  
     
 ]
