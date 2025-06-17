@@ -6,7 +6,7 @@ class UserLoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
 class CustomerLoginSerializer(serializers.Serializer):
-    mobile = serializers.CharField()
+    phone = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
 

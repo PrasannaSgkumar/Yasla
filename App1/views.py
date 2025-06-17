@@ -103,7 +103,7 @@ class CustomerLoginView(APIView):
                     "phone": customer.phone,
                     "full_name": customer.full_name,
                     "gender": customer.gender,
-                    "status": customer.status,
+                    
                 }
             }, status=status.HTTP_200_OK)
 

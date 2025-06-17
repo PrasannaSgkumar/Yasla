@@ -2,6 +2,7 @@ from django.db import models
 
 import uuid
 from django.db import models
+from django.contrib.auth.hashers import make_password
 
 from django.conf import settings
 
@@ -121,6 +122,12 @@ class User(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.user_role}"
+    
+    def save(self, *args, **kwargs):
+    # Hash the password only if it’s not already hashed
+        if self.password and not self.password.startswith('pbkdf2_'):
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
 
 
 
@@ -147,6 +154,14 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.full_name
+    
+    def save(self, *args, **kwargs):
+    # Hash the password only if it’s not already hashed
+        if self.password and not self.password.startswith('pbkdf2_'):
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+
 
 
 
