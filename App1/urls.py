@@ -45,6 +45,7 @@ urlpatterns = [
 
     #login Api's
     path('customer_login', CustomerLoginView.as_view(), name='customer-login'),
+    path('user_login', UserLoginView.as_view(), name='user-login'),
   
     
 ]

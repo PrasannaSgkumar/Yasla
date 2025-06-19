@@ -102,7 +102,7 @@ class User(models.Model):
     salon = models.ForeignKey(Salon, on_delete=models.CASCADE, related_name='users')
     full_name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(max_length=15, unique=True)
     password = models.CharField(max_length=255)
     
     # 👇 Using choices here
@@ -118,7 +118,8 @@ class User(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    branches = models.ManyToManyField(SalonBranch, related_name='users')
+    branches = models.ManyToManyField(SalonBranch, related_name='users',  null=True, blank=True)
+    
 
     def __str__(self):
         return f"{self.full_name} - {self.user_role}"

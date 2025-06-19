@@ -26,12 +26,12 @@ class UserLoginView(APIView):
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
-            email_or_phone = serializer.validated_data['email_or_phone']
+            phone = serializer.validated_data['phone']
             password = serializer.validated_data['password']
             fcm_token = request.data.get('fcm_token')
 
             try:
-                user = User.objects.get(Q(email=email_or_phone) | Q(phone=email_or_phone))
+                user = User.objects.get(phone=phone)
             except User.DoesNotExist:
                 return Response({
                     "status": "error",
