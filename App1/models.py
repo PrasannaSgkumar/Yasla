@@ -6,6 +6,24 @@ from django.contrib.auth.hashers import make_password
 
 from django.conf import settings
 
+
+
+class Superadmin(models.Model):
+    full_name = models.CharField(max_length=255)
+    email = models.EmailField(unique=True)
+    username=models.CharField(max_length=255, unique=True)
+    phone = models.CharField(max_length=15, unique=True)
+    password = models.CharField(max_length=255)
+    def __str__(self):
+        return f"{self.full_name}"
+    
+    def save(self, *args, **kwargs):
+   
+        if self.password and not self.password.startswith('pbkdf2_'):
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+
 class Salon(models.Model):
     class SalonCategoryChoices(models.TextChoices):
         MEN = 'Men', 'Men'

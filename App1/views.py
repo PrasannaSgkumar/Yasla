@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from rest_framework.response import Response
 from rest_framework.decorators import APIView
 from rest_framework import status
@@ -16,6 +16,10 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib import messages
+
+
+
 
 
 
@@ -855,3 +859,150 @@ class FeedbackDetailView(APIView):
             "status": "success",
             "message": "Feedback deleted successfully"
         }, status=status.HTTP_200_OK)
+    
+
+
+
+
+#SuperAdmin Views
+
+
+def superadminlogin(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        try:
+            user = Superadmin.objects.get(username=username)
+            if check_password(password, user.password):
+                request.session['superadmin_username'] = username
+                messages.success(request, 'Login successful!')
+                return redirect('dashboard')
+            else:
+                print("invalid id or pass")
+                messages.error(request, 'Invalid username or password')
+                return render(request, 'admin/admin_login.html')
+        except Superadmin.DoesNotExist:
+            print("does not exist")
+            messages.error(request, 'Invalid username or password')
+            return render(request, 'admin/admin_login.html')
+
+    return render(request, 'admin/admin_login.html')
+
+
+def superadmin_dashboard(request):
+    user=request.session.get('superadmin_username')
+    
+    if not user:
+        
+        return redirect('login')
+    else:
+        user=Superadmin.objects.get(username=user)
+        total_customers=Customer.objects.all().count()
+        total_vendors=Salon.objects.all().count()
+        total_saloons=SalonBranch.objects.all().count()
+        total=total_saloons+total_vendors
+        total_stylist=User.objects.filter(user_role="Stylist").count()
+        top_rated = Salon.objects.all().order_by('-rating')[:4]
+
+        context={
+            'user':user,
+            'total_customers':total_customers,
+            'total_vendors':total_vendors,
+            'total':total,
+            'total_stylist':total_stylist,
+            'top_rated':top_rated
+        }
+        return render(request, 'admin/dashboard.html', context)
+    
+def saloontable(request):
+    user=request.session.get('superadmin_username')
+    
+    if not user:
+        
+        return redirect('login')
+    else:
+        user=Superadmin.objects.get(username=user)
+        saloon=Salon.objects.all()
+        context={
+            'user':user,
+            'saloon':saloon
+        }
+        return render(request, 'admin/salon_table.html', context)
+
+
+
+def add_saloon(request):
+    user=request.session.get('superadmin_username')
+    
+    if not user:
+        
+        return redirect('login')
+    
+    if request.method == 'POST':
+        salon_name = request.POST.get('salonName')
+        vendor_name = request.POST.get('vendorName')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        alternate_phone = request.POST.get('alternatePhone')
+        vendor_type = request.POST.get('vendorType')
+        salon_category = request.POST.get('salonCategory')
+        business_registration = request.POST.get('businessRegistration')
+        gstin = request.POST.get('gstin')
+        opening_time = request.POST.get('openingTime')
+        closing_time = request.POST.get('closingTime')
+        street_address = request.POST.get('streetAddress')
+        locality = request.POST.get('locality')
+        city = request.POST.get('city')
+        state = request.POST.get('state')
+        pincode = request.POST.get('pincode')
+        country = request.POST.get('country')
+        latitude = request.POST.get('latitude') or None
+        longitude = request.POST.get('longitude') or None
+        profile_image = request.FILES.get('profileImage')
+
+       
+        salon = Salon.objects.create(
+            salon_name=salon_name,
+            vendor_name=vendor_name,
+            email=email,
+            phone=phone,
+            alternate_phone=alternate_phone,
+            vendor_type=vendor_type,
+            salon_category=salon_category,
+            business_registration=business_registration,
+            gstin=gstin,
+            opening_time=opening_time,
+            closing_time=closing_time,
+            street_address=street_address,
+            locality=locality,
+            city=city,
+            state=state,
+            pincode=pincode,
+            country=country,
+            latitude=latitude if latitude else None,
+            longitude=longitude if longitude else None,
+            profile_image=profile_image
+        )
+
+        return redirect('vendors')  
+
+    return render(request, 'admin/salon_form.html')
+
+
+def delete_vendor(request, id):
+    try:
+        vendor = Salon.objects.get(id=id)
+        if vendor:
+            vendor.delete()
+            messages.success(request, "Vendor deleted successfully.")
+        else:
+            messages.error(request, "Vendor not found.")
+    except Salon.DoesNotExist:
+        messages.error(request, "Vendor not found.")
+    return redirect('vendors')
+
+
+def logout(request):
+    request.session.flush()
+    return redirect('login')

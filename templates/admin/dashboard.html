@@ -1,0 +1,352 @@
+
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    .dashboard-cards .card {
+        border-radius: 1rem;
+        box-shadow: 0 2px 8px rgba(31,38,135,0.06);
+        border: none;
+    }
+    .dashboard-cards .card .icon-circle {
+        width: 48px; height: 48px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        color: #fff;
+    }
+    .dashboard-cards .bg1 { background: linear-gradient(90deg,#f43f5e 10%,#ec4899 100%);}
+    .dashboard-cards .bg2 { background: linear-gradient(90deg,#10b981 10%,#34d399 100%);}
+    .dashboard-cards .bg3 { background: linear-gradient(90deg,#fbbf24 10%,#f43f5e 100%);}
+    .dashboard-cards .bg4 { background: linear-gradient(90deg,#9333ea 10%,#ec4899 100%);}
+    .card-chart {
+        border-radius: 1rem;
+        box-shadow: 0 2px 8px rgba(31,38,135,0.06);
+        border: none;
+        margin-bottom: 2rem;
+    }
+    .chart-wrapper {
+        width: 100%;
+        height: 260px;
+        position: relative;
+    }
+    .chart-wrapper canvas {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 260px !important;
+    }
+    .top-salons .list-group-item {
+        border: none;
+        padding: 10px 15px;
+        background: none;
+    }
+    .top-salons .salon-img {
+        width: 40px; height: 40px; object-fit: cover; border-radius: 50%; margin-right: 12px;
+    }
+    .table thead th {
+        color: #9333ea;
+        font-weight: 600;
+        background: #f3e8ff;
+        border: none;
+    }
+    .table tbody tr {
+        background: #fff;
+    }
+    .table tbody td {
+        vertical-align: middle;
+    }
+    @media (max-width: 991px) {
+        .chart-wrapper { height: 180px; }
+    }
+</style>
+
+<div class="container-fluid py-2">
+    <!-- Dashboard Cards -->
+    <div class="row dashboard-cards g-4 mb-4">
+        <div class="col-md-2 col-sm-6">
+            <div class="card p-3 d-flex flex-row align-items-center">
+                <div class="icon-circle bg1 me-3"><i class="fa fa-store"></i></div>
+                <div>
+                    <h5 class="mb-0">{{ total }}</h5>
+                    <small class="text-muted">Salons</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="card p-3 d-flex flex-row align-items-center">
+                <div class="icon-circle bg2 me-3"><i class="fa fa-user-shield"></i></div>
+                <div>
+                    <h5 class="mb-0">{{ total_vendors }}</h5>
+                    <small class="text-muted">Vendors</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="card p-3 d-flex flex-row align-items-center">
+                <div class="icon-circle bg1 me-3"><i class="fa fa-user-tie"></i></div>
+                <div>
+                    <h5 class="mb-0">{{ total_stylist }}</h5>
+                    <small class="text-muted">Stylists</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="card p-3 d-flex flex-row align-items-center">
+                <div class="icon-circle bg2 me-3"><i class="fa fa-users"></i></div>
+                <div>
+                    <h5 class="mb-0">{{ total_customers }}</h5>
+                    <small class="text-muted">Clients</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="card p-3 d-flex flex-row align-items-center">
+                <div class="icon-circle bg3 me-3"><i class="fa fa-calendar-check"></i></div>
+                <div>
+                    <h5 class="mb-0">142</h5>
+                    <small class="text-muted">Appointments</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="card p-3 d-flex flex-row align-items-center">
+                <div class="icon-circle bg4 me-3"><i class="fa fa-dollar-sign"></i></div>
+                <div>
+                    <h5 class="mb-0">Rs.12,340</h5>
+                    <small class="text-muted">Revenue</small>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    <!-- Charts and Top Salons -->
+    <div class="row g-4 mb-2">
+        <div class="col-lg-8">
+            <div class="card card-chart mb-4">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">Appointments Trend</h6>
+                </div>
+                <div class="card-body chart-wrapper">
+                    <canvas id="appointmentsChart"></canvas>
+                </div>
+            </div>
+            <div class="card card-chart">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">Revenue Trend</h6>
+                </div>
+                <div class="card-body chart-wrapper">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-chart mb-3">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">Service Distribution</h6>
+                </div>
+                <div class="card-body chart-wrapper">
+                    <canvas id="servicePieChart"></canvas>
+                </div>
+            </div>
+            <div class="card card-chart top-salons">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">Top Rated Salons</h6>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex align-items-center">
+                        {% for i in top_rated %}
+                        {% comment %} <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=facearea&w=80&h=80" alt="Salon 1" class="salon-img"> {% endcomment %}
+                        <div>
+                            <strong>{{ i.salon_name }}</strong><br>
+                            <span class="text-warning"><i class="fa fa-star"></i>{{ i.rating }}</span>
+                        </div>
+                        {% endfor %}
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Recent Appointments Table -->
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card card-chart">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">Recent Appointments</h6>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Service</th>
+                                <th>Stylist</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <img src="{% static 'images/avatar-04.jpg' %}" alt="Client" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                                    Priya Sharma
+                                </td>
+                                <td>Haircut</td>
+                                <td>Riya Mehra</td>
+                                <td>2025-06-18</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="{% static 'images/avatar-04.jpg' %}" alt="Client" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                                    John Doe
+                                </td>
+                                <td>Facial</td>
+                                <td>Simran Kaur</td>
+                                <td>2025-06-18</td>
+                                <td><span class="badge bg-warning text-dark">Pending</span></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="{% static 'images/avatar-04.jpg' %}" alt="Client" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                                    Aisha Khan
+                                </td>
+                                <td>Manicure</td>
+                                <td>Neha Singh</td>
+                                <td>2025-06-17</td>
+                                <td><span class="badge bg-danger">Cancelled</span></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="{% static 'images/avatar-04.jpg' %}" alt="Client" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                                     Rajesh Gupta
+                                </td>
+                                <td>Manicure</td>
+                                <td>Neha Singh</td>
+                                <td>2025-06-17</td>
+                                <td><span class="badge bg-danger">Cancelled</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- More details -->
+    <div class="row g-4 ">
+        <div class="col-md-6">
+            <div class="card card-chart">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">Most Popular Services</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Haircut <span class="badge bg-primary rounded-pill">120</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Facial <span class="badge bg-success rounded-pill">80</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Manicure <span class="badge bg-warning rounded-pill">60</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Pedicure <span class="badge bg-info rounded-pill">40</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Coloring <span class="badge bg-danger rounded-pill">30</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-chart">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0">Top Stylists</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="{% static 'images/avatar-04.jpg' %}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                            Riya Mehra <span class="ms-auto badge bg-success">4.9</span>
+                        </li>
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="{% static 'images/avatar-04.jpg' %}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                            Simran Kaur <span class="ms-auto badge bg-success">4.8</span>
+                        </li>
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="{% static 'images/avatar-04.jpg' %}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                            Neha Singh <span class="ms-auto badge bg-success">4.7</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Appointments Trend Line Chart
+    new Chart(document.getElementById('appointmentsChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Appointments',
+                data: [40, 55, 60, 70, 65, 80],
+                borderColor: '#ec4899',
+                backgroundColor: 'rgba(236,72,153,0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointBackgroundColor: '#f43f5e'
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // Revenue Trend Bar Chart
+    new Chart(document.getElementById('revenueChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Revenue',
+                data: [3000, 3500, 4000, 4200, 3900, 5000],
+                backgroundColor: 'rgba(147,51,234,0.7)',
+                borderRadius: 8
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // Service Distribution Pie Chart
+    new Chart(document.getElementById('servicePieChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Haircut', 'Facial', 'Manicure', 'Pedicure', 'Coloring'],
+            datasets: [{
+                data: [40, 25, 15, 10, 10],
+                backgroundColor: [
+                    '#f43f5e', '#ec4899', '#9333ea', '#fbbf24', '#10b981'
+                ]
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+</script>
+{% endblock %}

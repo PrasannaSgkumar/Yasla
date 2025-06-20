@@ -1,0 +1,388 @@
+
+{% extends "admin/base.html" %}
+
+{% load static %}
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salon App - Add Salon</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            background: #f8fafc;
+        }
+
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.08);
+            width: 100%;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .form-label i {
+            color: #9333ea;
+        }
+
+        .profile-img-preview {
+            width: 100px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 5%;
+            border: 2px solid #ec4899;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-btn {
+            background: linear-gradient(90deg, #f43f5e 0%, #ec4899 50%, #9333ea 100%);
+            color: #fff;
+            border-radius: 1rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .user-btn:hover {
+            background: linear-gradient(90deg, #db2777 0%, #7c3aed 100%);
+            color: #fff;
+        }
+
+        .gradient-title {
+            background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
+
+        .input-group-text, .form-control, .form-select {
+            font-size: 1rem;
+        }
+        .input-group .btn {
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+        .input-group input {
+            border-radius: 0.5rem 0 0 0.5rem;
+        }
+        .form-control, .form-select {
+            border-radius: 0.5rem;
+            border: 1.5px solid #e2e8f0;
+            background: #f8fafc;
+            transition: border-color 0.2s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #9333ea;
+            box-shadow: 0 0 0 2px #9233ea41;
+        }
+        label.form-label {
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+
+        @media (max-width: 991.98px) {
+            .card {
+                max-width: 1000px;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .card {
+                max-width: 98%;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .card {
+                max-width: 100%;
+                padding: 1rem !important;
+            }
+
+            .profile-img-preview {
+                width: 80px;
+                height: 64px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container py-3">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="card p-4">
+                    <h2 class="text-center mb-4 gradient-title">Salon Registration</h2>
+                    <form id="salonForm" enctype="multipart/form-data" method="post">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="salonName" class="form-label">
+                                    <i class="fa-solid fa-store me-2"></i>
+                                    Salon Name
+                                </label>
+                                <input type="text" class="form-control" id="salonName" name="salonName"
+                                    placeholder="Enter salon name" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="vendorName" class="form-label">
+                                    <i class="fa-solid fa-user-tie me-2"></i>
+                                    Vendor Name
+                                </label>
+                                <input type="text" class="form-control" id="vendorName" name="vendorName"
+                                    placeholder="Owner/Manager name" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="email" class="form-label">
+                                    <i class="fa-solid fa-envelope me-2"></i>
+                                    Email
+                                </label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                    placeholder="Contact email" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="phone" class="form-label">
+                                    <i class="fa-solid fa-phone me-2"></i>
+                                    Phone
+                                </label>
+                                <input type="tel" class="form-control" id="phone" name="phone"
+                                    placeholder="Primary contact number" maxlength="15" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="alternatePhone" class="form-label">
+                                    <i class="fa-solid fa-phone-volume me-2"></i>
+                                    Alternate Phone
+                                </label>
+                                <input type="tel" class="form-control" id="alternatePhone" name="alternatePhone"
+                                    placeholder="Secondary contact number">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="vendorType" class="form-label">
+                                    <i class="fa-solid fa-users me-2"></i>
+                                    Vendor Type
+                                </label>
+                                <select class="form-select" id="vendorType" name="vendorType" required>
+                                    <option value="">Select type</option>
+                                    <option>Individual</option>
+                                    <option>Franchise</option>
+                                    <option>Company</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="salonCategory" class="form-label">
+                                    <i class="fa-solid fa-venus-mars me-2"></i>
+                                    Salon Category
+                                </label>
+                                <select class="form-select" id="salonCategory" name="salonCategory" required>
+                                    <option value="">Select category</option>
+                                    <option>Men</option>
+                                    <option>Women</option>
+                                    <option>Unisex</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="businessRegistration" class="form-label">
+                                    <i class="fa-solid fa-id-card me-2"></i>
+                                    Business Registration
+                                </label>
+                                <input type="text" class="form-control" id="businessRegistration"
+                                    name="businessRegistration" placeholder="Business registration number">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="gstin" class="form-label">
+                                    <i class="fa-solid fa-file-invoice me-2"></i>
+                                    GSTIN
+                                </label>
+                                <input type="text" class="form-control" id="gstin" name="gstin"
+                                    placeholder="GST Identification Number">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="openingTime" class="form-label">
+                                    <i class="fa-solid fa-clock me-2"></i>
+                                    Opening Time
+                                </label>
+                                <input type="time" class="form-control" id="openingTime" name="openingTime" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="closingTime" class="form-label">
+                                    <i class="fa-regular fa-clock me-2"></i>
+                                    Closing Time
+                                </label>
+                                <input type="time" class="form-control" id="closingTime" name="closingTime" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="streetAddress" class="form-label">
+                                    <i class="fa-solid fa-road me-2"></i>
+                                    Street Address
+                                </label>
+                                <input type="text" class="form-control" id="streetAddress" name="streetAddress"
+                                    placeholder="Street details" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="locality" class="form-label">
+                                    <i class="fa-solid fa-location-dot me-2"></i>
+                                    Locality
+                                </label>
+                                <input type="text" class="form-control" id="locality" name="locality"
+                                    placeholder="Area or neighborhood" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="city" class="form-label">
+                                    <i class="fa-solid fa-city me-2"></i>
+                                    City
+                                </label>
+                                <input type="text" class="form-control" id="city" name="city" placeholder="City name"
+                                    required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="state" class="form-label">
+                                    <i class="fa-solid fa-map me-2"></i>
+                                    State
+                                </label>
+                                <input type="text" class="form-control" id="state" name="state"
+                                    placeholder="State or province" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="pincode" class="form-label">
+                                    <i class="fa-solid fa-location-crosshairs me-2"></i>
+                                    Pincode
+                                </label>
+                                <input type="text" class="form-control" id="pincode" name="pincode"
+                                    placeholder="Postal code" maxlength="10" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="country" class="form-label">
+                                    <i class="fa-solid fa-flag me-2"></i>
+                                    Country
+                                </label>
+                                <input type="text" class="form-control" id="country" name="country"
+                                    placeholder="Country" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="latitude" class="form-label">
+                                    <i class="fa-solid fa-location-arrow me-2"></i>
+                                    Latitude
+                                </label>
+                                <input type="number" step="0.000001" class="form-control" id="latitude" name="latitude"
+                                    placeholder="Latitude">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="longitude" class="form-label">
+                                    <i class="fa-solid fa-location-arrow me-2"></i>
+                                    Longitude
+                                </label>
+                                <input type="number" step="0.000001" class="form-control" id="longitude"
+                                    name="longitude" placeholder="Longitude">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="profileImage" class="form-label">
+                                    <i class="fa-solid fa-image me-2"></i>
+                                    Profile Image / Logo
+                                </label>
+                                <input type="file" class="form-control" id="profileImage" name="profileImage"
+                                    accept="image/*">
+                                <div class="text-start mt-2">
+                                    <img id="profilePreview" class="profile-img-preview d-none" alt="Profile Preview">
+                                </div>
+                            </div>
+                            <!-- Salon Gallery Section -->
+                            <div class="col-md-4">
+                                <label for="salonGallery" class="form-label">
+                                    <i class="fa-solid fa-images me-2"></i>
+                                    Salon Gallery (Upload Photos)
+                                </label>
+                                <input type="file" class="form-control" id="salonGallery" name="salonGallery[]"
+                                    accept="image/*" multiple>
+                                <div class="d-flex flex-wrap gap-2 mt-2" id="galleryPreview"
+                                    class="profile-img-preview d-none"></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn user-btn w-100 mt-4">
+                            <i class="fa-solid fa-plus me-2"></i>
+                            Add Salon
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Profile image preview
+        const profileImage = document.getElementById('profileImage');
+        const profilePreview = document.getElementById('profilePreview');
+        profileImage.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                profilePreview.src = URL.createObjectURL(file);
+                profilePreview.classList.remove('d-none');
+            } else {
+                profilePreview.src = '';
+                profilePreview.classList.add('d-none');
+            }
+        });
+
+        // Salon gallery preview with remove button
+        const salonGallery = document.getElementById('salonGallery');
+        const galleryPreview = document.getElementById('galleryPreview');
+        let galleryFiles = [];
+
+        salonGallery.addEventListener('change', function (e) {
+            for (const file of Array.from(e.target.files)) {
+                if (!galleryFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    galleryFiles.push(file);
+                }
+            }
+            renderGallery();
+            salonGallery.value = '';
+        });
+
+        {% comment %} function renderGallery() {
+            galleryPreview.innerHTML = '';
+            galleryFiles.forEach((file, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'position-relative';
+                wrapper.style.width = '100px';
+                wrapper.style.height = '80px';
+
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.className = 'profile-img-preview';
+                img.style.marginBottom = '0';
+
+                // Remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-light btn-sm p-1 position-absolute top-0 end-0 border';
+                removeBtn.style.lineHeight = '1';
+                removeBtn.style.width = '22px';
+                removeBtn.style.height = '22px';
+                removeBtn.style.padding = '0';
+                removeBtn.innerHTML = '<i class="fa fa-times text-danger"></i>';
+                removeBtn.onclick = function () {
+                    galleryFiles.splice(idx, 1);
+                    renderGallery();
+                };
+
+                wrapper.appendChild(img);
+                wrapper.appendChild(removeBtn);
+                galleryPreview.appendChild(wrapper);
+            });
+        }
+
+        // Form submission (demo)
+        const salonForm = document.getElementById('salonForm');
+        salonForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            alert('Salon form submitted! (Implement backend logic)');
+        }); {% endcomment %}
+    </script>
+</body>
+
+</html>
+{% endblock content %}

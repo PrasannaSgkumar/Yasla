@@ -46,6 +46,16 @@ urlpatterns = [
     #login Api's
     path('customer_login', CustomerLoginView.as_view(), name='customer-login'),
     path('user_login', UserLoginView.as_view(), name='user-login'),
+
+
+    #Super Admin Urls
+    path('login', superadminlogin, name="login"),
+    path('dashboard', superadmin_dashboard, name="dashboard"),
+    path('vendors', saloontable, name="vendors"),
+    path('vendor/add', add_saloon, name="add_saloon"),
+    path('delete_salon/<uuid:id>/', delete_vendor, name="delete_salon"),
+    path('logout', logout, name="logout"),
+    
   
     
 ]
