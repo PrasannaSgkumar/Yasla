@@ -55,7 +55,7 @@ urlpatterns = [
     path('vendor/add', add_saloon, name="add_saloon"),
     path('delete_salon/<uuid:id>/', delete_vendor, name="delete_salon"),
     path('logout', logout, name="logout"),
-    
+    path('register/vendor/', RegisterVendorAPIView.as_view(), name='register_vendor'),
   
     
 ]

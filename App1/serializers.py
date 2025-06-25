@@ -111,3 +111,27 @@ class FeedbackSerializer(serializers.ModelSerializer):
     class Meta:
         model = Feedback
         fields = '__all__'
+
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        exclude = ['id', 'last_login', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'salon': {'read_only': True}  # ✅ this is important!
+        }
+
+
+class SalonRegistrationSerializer(serializers.ModelSerializer):
+    user = UserRegistrationSerializer(write_only=True)
+
+    class Meta:
+        model = Salon
+        fields = '__all__'
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        salon = Salon.objects.create(**validated_data)
+        User.objects.create(salon=salon, **user_data)
+        return salon

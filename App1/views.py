@@ -18,7 +18,8 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
 
-
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 
@@ -1006,3 +1007,19 @@ def delete_vendor(request, id):
 def logout(request):
     request.session.flush()
     return redirect('login')
+
+
+
+class RegisterVendorAPIView(APIView):
+    
+    @swagger_auto_schema(
+        request_body=SalonRegistrationSerializer,
+        responses={201: "Vendor and User created successfully", 400: "Bad request"},
+        operation_description="Register a new vendor (Salon) and an associated user."
+    )
+    def post(self, request):
+        serializer = SalonRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Vendor and user created successfully."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
