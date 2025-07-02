@@ -1,0 +1,186 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<!-- Font Awesome CDN for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+
+<style>
+    body {
+        background: #f8fafc;
+    }
+    .card {
+        border-radius: 8px;
+        box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.08);
+        width: 100%;
+        max-width: 1400px;
+        margin: 0 auto;
+        background: #fff;
+    }
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+    }
+    .profile-img-preview {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid #ec4899;
+        background: #f8fafc;
+        margin-bottom: 10px;
+    }
+    .detail-row {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f3e8ff;
+    }
+    .detail-label {
+        color: #9333ea;
+        font-weight: 600;
+        width: 140px;
+        min-width: 90px;
+        font-size: 0.95rem;
+        margin-right: 8px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+    .detail-label i {
+        min-width: 18px;
+        text-align: center;
+        font-size: 1.05em;
+        opacity: 0.85;
+    }
+    .detail-value {
+        color: #22223b;
+        font-size: 0.95rem;
+        flex: 1;
+        word-break: break-all;
+    }
+    @media (max-width: 991.98px) {
+        .card { max-width: 98%; }
+        .detail-label { width: 90px; font-size: 0.91rem; }
+        .detail-value { font-size: 0.91rem; }
+    }
+    @media (max-width: 575.98px) {
+        .card { padding: 1rem !important; }
+        .profile-img-preview { width: 50px; height: 50px; }
+        .detail-label { width: 60px; font-size: 0.87rem; }
+        .detail-value { font-size: 0.87rem; }
+    }
+</style>
+
+<div class="container-fluid mb-3 p-0">
+    <div class="card p-4">
+        <h2 class="text-center mb-4 gradient-title">Vendor Details</h2>
+        <div class="row align-items-center mb-2">
+            <!-- First two columns: Profile image, Salon Name, Vendor Name, Email, Phone -->
+            <div class="col-md-4 col-12">
+                <div class="text-center">
+                    {% if vendor.profile_image %}
+                        <img src="{{ vendor.profile_image }}" alt="Profile Image" class="profile-img-preview shadow-sm">
+                    {% else %}
+                        <img src="{% static 'images/avatar-04.jpg' %}" alt="No Image" class="profile-img-preview shadow-sm">
+                    {% endif %}
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-store"></i>Salon Name</div>
+                    <div class="detail-value">{{ vendor.salon_name }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-user"></i>Vendor Name</div>
+                    <div class="detail-value">{{ vendor.vendor_name }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-envelope"></i>Email</div>
+                    <div class="detail-value">{{ vendor.email }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-phone"></i>Phone</div>
+                    <div class="detail-value">{{ vendor.phone }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-phone-volume"></i>Alternate Phone</div>
+                    <div class="detail-value">{{ vendor.alternate_phone|default:"-" }}</div>
+                </div>
+            </div>
+            <!-- Third column: All other details -->
+            <div class="col-md-4 col-12">
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-id-badge"></i>Vendor Type</div>
+                    <div class="detail-value">{{ vendor.vendor_type }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-list"></i>Category</div>
+                    <div class="detail-value">{{ vendor.get_salon_category_display }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-file-contract"></i>Business Registration</div>
+                    <div class="detail-value">{{ vendor.business_registration|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-receipt"></i>GSTIN</div>
+                    <div class="detail-value">{{ vendor.gstin|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-star"></i>Rating</div>
+                    <div class="detail-value">{{ vendor.rating|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-clock"></i>Opening Time</div>
+                    <div class="detail-value">{{ vendor.opening_time|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-clock"></i>Closing Time</div>
+                    <div class="detail-value">{{ vendor.closing_time|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-location-dot"></i>Street Address</div>
+                    <div class="detail-value">{{ vendor.street_address|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-map-pin"></i>Locality</div>
+                    <div class="detail-value">{{ vendor.locality|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-city"></i>City</div>
+                    <div class="detail-value">{{ vendor.city|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-flag"></i>State</div>
+                    <div class="detail-value">{{ vendor.state|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-hashtag"></i>Pincode</div>
+                    <div class="detail-value">{{ vendor.pincode|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-earth-asia"></i>Country</div>
+                    <div class="detail-value">{{ vendor.country|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-arrow-up"></i>Latitude</div>
+                    <div class="detail-value">{{ vendor.latitude|default:"-" }}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label"><i class="fa-solid fa-arrow-right"></i>Longitude</div>
+                    <div class="detail-value">{{ vendor.longitude|default:"-" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "admin/salon_branches.html" %}
+
+{% include "admin/user_table.html" %}
+
+{% endblock %}

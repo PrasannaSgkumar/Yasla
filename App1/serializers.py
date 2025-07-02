@@ -135,3 +135,15 @@ class SalonRegistrationSerializer(serializers.ModelSerializer):
         salon = Salon.objects.create(**validated_data)
         User.objects.create(salon=salon, **user_data)
         return salon
+    
+class ServiceCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service_Category
+        fields = '__all__'
+
+class ServiceSerializer(serializers.ModelSerializer):
+    category = ServiceCategorySerializer()  # Nested
+
+    class Meta:
+        model = Service
+        fields = '__all__'

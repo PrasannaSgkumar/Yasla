@@ -1,0 +1,87 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    .branch-card-header {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.2rem;
+        border-radius: 8px 8px 0 0;
+    }
+    .branch-label {
+        color: #9333ea;
+        font-weight: 600;
+    }
+    .branch-value {
+        color: #22223b;
+    }
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+    }
+    .btn-back{
+      background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+      color: #fff;  
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-3">
+    <h2 class="my-4 gradient-title">Salon Branch Details</h1>
+    <div class="row">
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card mb-2 flex-grow-1">
+                <div class="card-header branch-card-header">
+                    <i class="fas fa-building me-2"></i>Branch Information
+                </div>
+                <div class="card-body">
+                    <p><span class="branch-label">Branch Name:</span> <span class="branch-value">{{ branch.branch_name }}</span></p>
+                    <p><span class="branch-label">Salon:</span> <span class="branch-value">{{ branch.salon.salon_name }}</span></p>
+                    <p><span class="branch-label">Category:</span> <span class="branch-value">{{ branch.get_salon_category_display }}</span></p>
+                    <p><span class="branch-label">Email:</span> <span class="branch-value">{{ branch.email|default:"-" }}</span></p>
+                    <p><span class="branch-label">Phone:</span> <span class="branch-value">{{ branch.phone|default:"-" }}</span></p>
+                    <p><span class="branch-label">Working Days:</span> <span class="branch-value">{{ branch.working_days|default:"-" }}</span></p>
+                    <p><span class="branch-label">Opening Time:</span> <span class="branch-value">{{ branch.opening_time|default:"-" }}</span></p>
+                    <p><span class="branch-label">Closing Time:</span> <span class="branch-value">{{ branch.closing_time|default:"-" }}</span></p>
+                    <p><span class="branch-label">Status:</span>
+                        <span class="branch-value">
+                            {% if branch.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card mb-2 flex-grow-1">
+                <div class="card-header branch-card-header">
+                    <i class="fas fa-map-marker-alt me-2"></i>Address & Location
+                </div>
+                <div class="card-body">
+                    <p><span class="branch-label">Street Address:</span> <span class="branch-value">{{ branch.street_address|default:"-" }}</span></p>
+                    <p><span class="branch-label">Locality:</span> <span class="branch-value">{{ branch.locality|default:"-" }}</span></p>
+                    <p><span class="branch-label">City:</span> <span class="branch-value">{{ branch.city|default:"-" }}</span></p>
+                    <p><span class="branch-label">State:</span> <span class="branch-value">{{ branch.state|default:"-" }}</span></p>
+                    <p><span class="branch-label">Pincode:</span> <span class="branch-value">{{ branch.pincode|default:"-" }}</span></p>
+                    <p><span class="branch-label">Country:</span> <span class="branch-value">{{ branch.country|default:"-" }}</span></p>
+                    <p><span class="branch-label">Latitude:</span> <span class="branch-value">{{ branch.latitude|default:"-" }}</span></p>
+                    <p><span class="branch-label">Longitude:</span> <span class="branch-value">{{ branch.longitude|default:"-" }}</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mt-3">
+        <button onclick="window.history.back()" class="btn btn-back">Back to List</button>
+    </div>
+</div>
+
+{% endblock content %}
+

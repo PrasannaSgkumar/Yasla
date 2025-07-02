@@ -1,0 +1,496 @@
+
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    body {
+        background: #f8fafc;
+        font-family: 'Poppins', Arial, sans-serif;
+    }
+
+    .card {
+        border-radius: 1rem;
+        box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.08);
+        width: 100%;
+        max-width: 1300px;
+        margin: 0 auto;
+    }
+
+    .form-label i {
+        color: #9333ea;
+    }
+
+    .user-btn {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 50%, #9333ea 100%);
+        color: #fff;
+        border-radius: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .user-btn:hover {
+        background: linear-gradient(90deg, #db2777 0%, #7c3aed 100%);
+        color: #fff;
+    }
+
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+    }
+
+    .input-group-text,
+    .form-control,
+    .form-select {
+        font-size: 1rem;
+    }
+
+    .input-group .btn {
+        border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    .input-group input {
+        border-radius: 0.5rem 0 0 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 0.5rem;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #9333ea;
+        box-shadow: 0 0 0 2px #9233ea41;
+    }
+
+    label.form-label {
+        font-weight: 500;
+        letter-spacing: 0.2px;
+    }
+
+    @media (max-width: 991.98px) {
+        .card {
+            max-width: 1000px;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .card {
+            max-width: 98%;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .card {
+            max-width: 100%;
+            padding: 1rem !important;
+        }
+    }
+</style>
+
+<div class="container py-3">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <div class="card p-4">
+                <h2 class="text-center mb-4 gradient-title">
+                    {% if branch %}Edit{% else %}Add{% endif %} Salon Branch
+                </h2>
+                <form id="branchForm" enctype="multipart/form-data" method="post"
+                    action="{% if branch %}{% url 'edit_branch' branch.id %}{% else %}{% if salon %}{% url 'add_branch' salon.id %}{% else %}#{% endif %}{% endif %}">
+
+                    {% csrf_token %}
+                    <div class="row g-3">
+
+                        <!-- Read-only Salon Name -->
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="fa-solid fa-store me-2"></i>Salon Name</label>
+                            <input type="text" class="form-control" value="{{ salon.salon_name }}" readonly>
+                            <input type="hidden" name="salon_id" value="{{ salon.id }}">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="branchName" class="form-label">
+                                <i class="fa-solid fa-building me-2"></i>
+                                Branch Name
+                            </label>
+                            <input type="text" class="form-control" id="branchName" name="branchName"
+                                   placeholder="Branch name/label" 
+                                   value="{% if branch %}{{ branch.branch_name }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="salonCategory" class="form-label">
+                                <i class="fa-solid fa-venus-mars me-2"></i>
+                                Salon Category
+                            </label>
+                            <select class="form-select" id="salonCategory" name="salonCategory" >
+                                <option value="" disabled selected hidden>--Select Category--</option>
+                                <option value="Men" {% if branch and branch.salon_category == "Men" %}selected{% endif %}>Men</option>
+                                <option value="Women" {% if branch and branch.salon_category == "Women" %}selected{% endif %}>Women</option>
+                                <option value="Unisex" {% if branch and branch.salon_category == "Unisex" %}selected{% endif %}>Unisex</option>
+                            </select>
+                            <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="email" class="form-label">
+                                <i class="fa-solid fa-envelope me-2"></i>
+                                Email
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   placeholder="Branch email" 
+                                   value="{% if branch %}{{ branch.email }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="phone" class="form-label">
+                                <i class="fa-solid fa-phone me-2"></i>
+                                Phone
+                            </label>
+                            <input type="tel" class="form-control" id="phone" name="phone"
+                                   placeholder="Branch phone number" maxlength="15" 
+                                   value="{% if branch %}{{ branch.phone }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="streetAddress" class="form-label">
+                                <i class="fa-solid fa-road me-2"></i>
+                                Street Address
+                            </label>
+                            <input type="text" class="form-control" id="streetAddress" name="streetAddress"
+                                   placeholder="Street name and number" 
+                                   value="{% if branch %}{{ branch.street_address }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="locality" class="form-label">
+                                <i class="fa-solid fa-location-dot me-2"></i>
+                                Locality
+                            </label>
+                            <input type="text" class="form-control" id="locality" name="locality"
+                                   placeholder="Neighborhood or area" 
+                                   value="{% if branch %}{{ branch.locality }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="city" class="form-label">
+                                <i class="fa-solid fa-city me-2"></i>
+                                City
+                            </label>
+                            <input type="text" class="form-control" id="city" name="city" placeholder="City" 
+                                   value="{% if branch %}{{ branch.city }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="state" class="form-label">
+                                <i class="fa-solid fa-map me-2"></i>
+                                State
+                            </label>
+                            <input type="text" class="form-control" id="state" name="state"
+                                   placeholder="State or province" 
+                                   value="{% if branch %}{{ branch.state }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="pincode" class="form-label">
+                                <i class="fa-solid fa-location-crosshairs me-2"></i>
+                                Pincode
+                            </label>
+                            <input type="text" class="form-control" id="pincode" name="pincode"
+                                   placeholder="ZIP or postal code" maxlength="10" 
+                                   value="{% if branch %}{{ branch.pincode }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="country" class="form-label">
+                                <i class="fa-solid fa-flag me-2"></i>
+                                Country
+                            </label>
+                            <input type="text" class="form-control" id="country" name="country"
+                                   placeholder="Country" 
+                                   value="{% if branch %}{{ branch.country }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="latitude" class="form-label">
+                                <i class="fa-solid fa-location-arrow me-2"></i>
+                                Latitude
+                            </label>
+                            <input type="text"  class="form-control" id="latitude" name="latitude"
+                                   placeholder="Latitude" value="{% if branch %}{{ branch.latitude }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="longitude" class="form-label">
+                                <i class="fa-solid fa-location-arrow me-2"></i>
+                                Longitude
+                            </label>
+                            <input type="text" class="form-control" id="longitude" name="longitude"
+                                   placeholder="Longitude" value="{% if branch %}{{ branch.longitude }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="openingTime" class="form-label">
+                                <i class="fa-solid fa-clock me-2"></i>
+                                Opening Time
+                            </label>
+                            <input type="time" class="form-control" id="openingTime" name="openingTime" 
+                                   value="{% if branch %}{{ branch.opening_time|time:'H:i' }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="closingTime" class="form-label">
+                                <i class="fa-regular fa-clock me-2"></i>
+                                Closing Time
+                            </label>
+                            <input type="time" class="form-control" id="closingTime" name="closingTime" 
+                                   value="{% if branch %}{{ branch.closing_time|time:'H:i' }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="workingDays" class="form-label">
+                                <i class="fa-solid fa-calendar-days me-2"></i>
+                                Working Days
+                            </label>
+                            <input type="text" class="form-control" id="workingDays" name="workingDays"
+                                   placeholder="e.g. Mon-Sun, Tue-Sun" 
+                                   value="{% if branch %}{{ branch.working_days }}{% endif %}">
+                                   <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="isActive" class="form-label">
+                                <i class="fa-solid fa-toggle-on me-2"></i>
+                                Is Active
+                            </label>
+
+                            <select class="form-select" id="isActive" name="isActive" >
+                                <option value="true" {% if branch and branch.is_active %}selected{% endif %}>Active</option>
+                                <option value="false" {% if branch and not branch.is_active %}selected{% endif %}>Inactive</option>
+                            </select>
+                            <div class="text-danger small d-none"></div>
+                        </div>
+
+                    </div>
+                    <button type="submit" class="btn user-btn w-100 mt-4">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        {% if branch %}Update Branch{% else %}Add Branch{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('branchForm');
+
+    const fields = {
+        branchName: document.getElementById('branchName'),
+        salonCategory: document.getElementById('salonCategory'),
+        email: document.getElementById('email'),
+        phone: document.getElementById('phone'),
+        streetAddress: document.getElementById('streetAddress'),
+        locality: document.getElementById('locality'),
+        city: document.getElementById('city'),
+        state: document.getElementById('state'),
+        pincode: document.getElementById('pincode'),
+        country: document.getElementById('country'),
+        latitude: document.getElementById('latitude'),
+        longitude: document.getElementById('longitude'),
+        openingTime: document.getElementById('openingTime'),
+        closingTime: document.getElementById('closingTime'),
+        workingDays: document.getElementById('workingDays'),
+        isActive: document.getElementById('isActive'),
+    };
+
+    function showMessage(input, message, show) {
+        const msgDiv = input.closest('.col-md-4')?.querySelector('.text-danger');
+        if (msgDiv) {
+            msgDiv.textContent = message;
+            msgDiv.classList.toggle('d-none', !show);
+        }
+    }
+
+    function validateEmail(val) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    }
+
+    function validatePhone(val) {
+        return /^\d{10,15}$/.test(val);
+    }
+
+    function validatePincode(val) {
+        return /^\d{4,10}$/.test(val);
+    }
+
+    function validateCoordinate(val) {
+        return /^-?\d+(\.\d+)?$/.test(val);
+    }
+
+    // Live input validations
+    fields.email.addEventListener('input', () => {
+        showMessage(fields.email, '', validateEmail(fields.email.value));
+    });
+
+    fields.phone.addEventListener('input', () => {
+        fields.phone.value = fields.phone.value.replace(/\D/g, '');
+        if (validatePhone(fields.phone.value)) {
+            showMessage(fields.phone, '', false);
+        }
+    });
+
+    fields.pincode.addEventListener('input', () => {
+        fields.pincode.value = fields.pincode.value.replace(/\D/g, '');
+        if (validatePincode(fields.pincode.value)) {
+            showMessage(fields.pincode, '', false);
+        }
+    });
+
+    fields.latitude.addEventListener('input', () => {
+        fields.latitude.value = fields.latitude.value.replace(/[^0-9.\-]/g, '');
+        if (validateCoordinate(fields.latitude.value)) {
+            showMessage(fields.latitude, '', false);
+        }
+    });
+
+    fields.longitude.addEventListener('input', () => {
+        fields.longitude.value = fields.longitude.value.replace(/[^0-9.\-]/g, '');
+        if (validateCoordinate(fields.longitude.value)) {
+            showMessage(fields.longitude, '', false);
+        }
+    });
+
+    Object.keys(fields).forEach(fieldName => {
+        const field = fields[fieldName];
+        if (!['email', 'phone', 'pincode', 'latitude', 'longitude'].includes(fieldName)) {
+            field.addEventListener('input', () => {
+                showMessage(field, '', !!field.value.trim());
+            });
+            field.addEventListener('change', () => {
+                showMessage(field, '', !!field.value.trim());
+            });
+        }
+    });
+
+    form.addEventListener('submit', function (e) {
+        let valid = true;
+
+        if (!fields.branchName.value.trim()) {
+            showMessage(fields.branchName, 'Please enter the branch name.', true);
+            valid = false;
+        }
+
+        if (!fields.salonCategory.value) {
+            showMessage(fields.salonCategory, 'Please select a salon category.', true);
+            valid = false;
+        }
+
+        if (!validateEmail(fields.email.value)) {
+            showMessage(fields.email, 'Please enter a valid email.', true);
+            valid = false;
+        }
+
+        if (!validatePhone(fields.phone.value)) {
+            showMessage(fields.phone, 'Please enter a valid phone number (10+ digits).', true);
+            valid = false;
+        }
+
+        if (!fields.streetAddress.value.trim()) {
+            showMessage(fields.streetAddress, 'Please enter street address.', true);
+            valid = false;
+        }
+
+        if (!fields.locality.value.trim()) {
+            showMessage(fields.locality, 'Please enter locality.', true);
+            valid = false;
+        }
+
+        if (!fields.city.value.trim()) {
+            showMessage(fields.city, 'Please enter city.', true);
+            valid = false;
+        }
+
+        if (!fields.state.value.trim()) {
+            showMessage(fields.state, 'Please enter state.', true);
+            valid = false;
+        }
+
+        if (!validatePincode(fields.pincode.value)) {
+            showMessage(fields.pincode, 'Please enter a valid pincode.', true);
+            valid = false;
+        }
+
+        if (!fields.country.value.trim()) {
+            showMessage(fields.country, 'Please enter country.', true);
+            valid = false;
+        }
+
+        if (!fields.latitude.value.trim()) {
+            showMessage(fields.latitude, 'Please enter latitude.', true);
+            valid = false;
+        } else if (!validateCoordinate(fields.latitude.value)) {
+            showMessage(fields.latitude, 'Invalid latitude format.', true);
+            valid = false;
+        }
+
+        if (!fields.longitude.value.trim()) {
+            showMessage(fields.longitude, 'Please enter longitude.', true);
+            valid = false;
+        } else if (!validateCoordinate(fields.longitude.value)) {
+            showMessage(fields.longitude, 'Invalid longitude format.', true);
+            valid = false;
+        }
+
+        if (!fields.openingTime.value) {
+            showMessage(fields.openingTime, 'Please select opening time.', true);
+            valid = false;
+        }
+
+        if (!fields.closingTime.value) {
+            showMessage(fields.closingTime, 'Please select closing time.', true);
+            valid = false;
+        }
+
+        if (!fields.workingDays.value.trim()) {
+            showMessage(fields.workingDays, 'Please enter working days.', true);
+            valid = false;
+        }
+
+        if (!fields.isActive.value) {
+            showMessage(fields.isActive, 'Please select active status.', true);
+            valid = false;
+        }
+
+        if (!valid) e.preventDefault();
+    });
+});
+</script>
+
+
+
+{% endblock content %}

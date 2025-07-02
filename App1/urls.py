@@ -49,13 +49,48 @@ urlpatterns = [
 
 
     #Super Admin Urls
-    path('login', superadminlogin, name="login"),
+    #Super Admin Urls
+   
+    path('register/vendor/', RegisterVendorAPIView.as_view(), name='register_vendor'),
+    path('service-categories/', ServiceCategoryListView.as_view(), name='service_category_list'),
+    path('api/services/', ServiceListView.as_view(), name='service_list'),
+  
+     path('login', superadminlogin, name="login"),
     path('dashboard', superadmin_dashboard, name="dashboard"),
+    
     path('vendors', saloontable, name="vendors"),
     path('vendor/add', add_saloon, name="add_saloon"),
-    path('delete_salon/<uuid:id>/', delete_vendor, name="delete_salon"),
-    path('logout', logout, name="logout"),
-    path('register/vendor/', RegisterVendorAPIView.as_view(), name='register_vendor'),
-  
-    
+    path('salon/delete/<uuid:id>/', delete_vendor, name="delete_salon"),
+    path('salon/view/<uuid:id>/', view_vendor, name="view_salon"),
+
+    path('branch/add/<uuid:id>/', add_branch, name="add_branch"),
+    path('branch/edit/<uuid:id>/', edit_branch, name="edit_branch"),
+    path('branch/delete/<uuid:id>/', delete_branch, name="delete_branch"),
+    path('branch/view/<uuid:id>/', view_branch, name="view_branch"),
+
+    path('user/add/<uuid:id>/', add_user, name="add_user"),
+    path('user/edit/<uuid:id>/', edit_user, name="edit_user"),
+    path('user/delete/<uuid:id>/', delete_user, name="delete_user"),
+    path('user/view/<uuid:id>/', view_user, name="view_user"),
+
+    path('customers/list/', customer_table, name='customer_table'),
+    # path('customer/add/', add_customer, name='add_customer'),
+    # path('customer/edit/<uuid:id>/', edit_customer, name='edit_customer'),
+    # path('customer/delete/<uuid:id>/', delete_customer, name='delete_customer'),
+    path('customer/view/<uuid:id>/', view_customer, name='view_customer'),
+
+    path('payment/list/', payment_table, name='payment_table'),
+    path('payment/view/<uuid:id>/', view_payment, name='view_payment'),
+
+    path('service/list/', service_table, name='service_table'),  
+    path('service/add/', add_service, name='add_service'),
+    path('service/edit/<uuid:id>/', edit_service, name='edit_service'),
+    path('service/delete/<uuid:id>/', delete_service, name='delete_service'),
+    path('service/view/<uuid:id>/', view_service, name='view_service'),
+    path('service/category', service_category_table, name="service_category_table"),
+    path('add_category/',add_category, name='add_category'),
+   
+    path('edit_category/<int:id>/', edit_category, name='edit_category'),
+    path('delete_category/<int:id>/', delete_category, name='delete_category'),
+
 ]

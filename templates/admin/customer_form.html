@@ -1,0 +1,428 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    body {
+        background: linear-gradient(120deg, #f8fafc 60%, #f3e8ff 100%);
+        font-family: 'Poppins', Arial, sans-serif;
+    }
+
+    .card {
+        border-radius: 1.2rem;
+        box-shadow: 0 6px 32px 0 rgba(31, 38, 135, 0.10);
+        width: 100%;
+        max-width: 1300px;
+        margin: 0 auto;
+        border: none;
+    }
+
+    .form-label i {
+        color: #9333ea;
+    }
+
+    .profile-img-preview {
+        width: 100px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid #ec4899;
+        margin-bottom: 0.5rem;
+        background: #f3e8ff;
+    }
+
+    .user-btn {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 50%, #9333ea 100%);
+        color: #fff;
+        border-radius: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        border: none;
+        box-shadow: 0 2px 8px #9333ea22;
+    }
+
+    .user-btn:hover {
+        background: linear-gradient(90deg, #db2777 0%, #7c3aed 100%);
+        color: #fff;
+    }
+
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+        font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+        letter-spacing: 1px;
+    }
+
+    .input-group-text,
+    .form-control,
+    .form-select {
+        font-size: 1rem;
+    }
+
+    .input-group .btn {
+        border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    .input-group input {
+        border-radius: 0.5rem 0 0 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 0.5rem;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #9333ea;
+        box-shadow: 0 0 0 2px #9233ea41;
+    }
+
+    label.form-label {
+        font-weight: 500;
+        letter-spacing: 0.2px;
+    }
+
+    @media (max-width: 991.98px) {
+        .card {
+            max-width: 98%;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .card {
+            max-width: 100%;
+            padding: 1rem !important;
+        }
+
+        .profile-img-preview {
+            width: 80px;
+            height: 64px;
+        }
+    }
+</style>
+
+<div class="container py-5">
+    <div class="card p-4">
+        <h2 class="text-center gradient-title mb-4">{% if edit_customer %}Edit{% else %}Add{% endif %} Customer</h2>
+        <form id="customerForm" method="post" enctype="multipart/form-data"
+            action="{% if edit_customer %}{% url 'edit_customer' edit_customer.id %}{% else %}{% url 'add_customer' %}{% endif %}">
+            {% csrf_token %}
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-user me-2"></i>Full Name</label>
+                    <input type="text" name="fullName" id="fullName" class="form-control" placeholder="Enter full name"
+                        value="{{ edit_customer.full_name|default:'' }}">
+                    <div class="text-danger small d-none"></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-envelope me-2"></i>Email</label>
+                    <input type="email" name="email" id="email" class="form-control" placeholder="Enter email"
+                        value="{{ edit_customer.email|default:'' }}">
+                    <div class="text-danger small d-none"></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-phone me-2"></i>Phone</label>
+                    <input type="tel" name="phone" id="phone" class="form-control" placeholder="Enter phone"
+                        maxlength="15" value="{{ edit_customer.phone|default:'' }}">
+                    <div class="text-danger small d-none"></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-venus-mars me-2"></i>Gender</label>
+                    <select id="gender" name="gender" class="form-select">
+                        <option value="" hidden>-- Select Gender --</option>
+                        <option value="Male" {% if edit_customer.gender == "Male" %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if edit_customer.gender == "Female" %}selected{% endif %}>Female
+                        </option>
+                        <option value="Other" {% if edit_customer.gender == "Other" %}selected{% endif %}>Other</option>
+                    </select>
+                    <div class="text-danger small d-none"></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-location-dot me-2"></i>Address</label>
+                    <input type="text" id="address" name="address" class="form-control" placeholder="Enter address"
+                        value="{{ edit_customer.address|default:'' }}">
+                        <div class="text-danger small d-none"></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-city me-2"></i>City</label>
+                    <input type="text" id="city" name="city" class="form-control" placeholder="Enter city"
+                        value="{{ edit_customer.city|default:'' }}">
+                        <div class="text-danger small d-none"></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-map-pin me-2"></i>Pincode</label>
+                    <input type="text" id="pincode" name="pincode"  class="form-control" placeholder="Enter pincode" maxlength="10"
+                        value="{{ edit_customer.pincode|default:'' }}">
+                        <div class="text-danger small d-none"></div>
+                </div>
+
+                {% if not edit_customer %}
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-lock me-2"></i>Password</label>
+                    <div class="input-group">
+                        <input type="password" name="password" id="password" class="form-control"
+                            placeholder="Enter password">
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword" tabindex="-1">
+                            <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                    <div class="text-danger small d-none"></div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-lock me-2"></i>Confirm Password</label>
+                    <div class="input-group">
+                        <input type="password" name="confirmPassword" id="confirmPassword" class="form-control"
+                            placeholder="Confirm password">
+                        <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword"
+                            tabindex="-1">
+                            <i class="fa-solid fa-eye" id="eyeIconConfirm"></i>
+                        </button>
+                    </div>
+                    <div id="confirmPasswordMsg" class="text-danger small d-none mt-1"></div>
+                </div>
+                {% endif %}
+
+                
+
+                <div class="col-md-6">
+                    <label class="form-label"><i class="fa-solid fa-image me-2"></i>Profile Image</label>
+                    <input type="file" name="profileImage" id="profileImage" class="form-control" accept="image/*">
+                    <div class="text-danger small d-none"></div>
+
+                    <div class="text-start mt-2">
+                        {% if edit_customer and edit_customer.profile_image %}
+                        <img id="profilePreview" class="profile-img-preview" src="{{ edit_customer.profile_image }}" alt="Profile Preview" style="width: 80px; height: 80px; border-radius: 50%;">
+                        {% else %}
+                        <img id="profilePreview" class="profile-img-preview d-none" alt="Profile Preview">
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn user-btn mt-4 w-100">
+                <i class="fa-solid fa-circle-check me-2"></i>
+                {% if edit_customer %}Update Customer{% else %}Add Customer{% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const profileImage = document.getElementById('profileImage');
+    const profilePreview = document.getElementById('profilePreview');
+    const form = document.getElementById('customerForm');
+
+    const fullName = document.getElementById('fullName');
+    const email = document.getElementById('email');
+    const phone = document.getElementById('phone');
+    const gender = document.getElementById('gender');
+    const address = document.getElementById('address');
+    const city = document.getElementById('city');
+    const pincode = document.getElementById('pincode');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const confirmPasswordMsg = document.getElementById('confirmPasswordMsg');
+
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+
+    // Image Preview
+    profileImage?.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+            profilePreview.src = URL.createObjectURL(file);
+            profilePreview.classList.remove('d-none');
+        } else {
+            profilePreview.src = '';
+            profilePreview.classList.add('d-none');
+        }
+    });
+
+    // Utility to show/hide messages
+    function showMessage(input, message, show) {
+        const wrapper = input.closest('.col-md-6');
+        if (!wrapper) return;
+        const msg = wrapper.querySelector('.text-danger');
+        if (msg) {
+            msg.textContent = message;
+            msg.classList.toggle('d-none', !show);
+        }
+    }
+
+    function validateEmail(val) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    }
+
+    function validatePhone(val) {
+        return /^\d{10,15}$/.test(val);
+    }
+
+    function validatePincode(val) {
+        return /^\d{4,10}$/.test(val);
+    }
+
+    function validatePassword(val) {
+        return /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(val);
+    }
+
+    function validateImage(fileInput) {
+        if (!fileInput.files.length) return true;
+        const name = fileInput.files[0].name.toLowerCase();
+        return imageExtensions.some(ext => name.endsWith(`.${ext}`));
+    }
+
+    // Live validations
+    fullName.addEventListener('input', () => {
+        showMessage(fullName, 'Please enter full name.', fullName.value.trim() === '');
+    });
+
+    email.addEventListener('input', () => {
+        showMessage(email, 'Please enter a valid email.', !validateEmail(email.value));
+    });
+
+    phone.addEventListener('input', () => {
+        phone.value = phone.value.replace(/\D/g, '');
+        showMessage(phone, 'Please enter valid phone number.', !validatePhone(phone.value));
+    });
+
+    gender.addEventListener('change', () => {
+        showMessage(gender, 'Please select gender.', !gender.value);
+    });
+
+    address.addEventListener('input', () => {
+        showMessage(address, 'Please enter address.', address.value.trim() === '');
+    });
+
+    city.addEventListener('input', () => {
+        showMessage(city, 'Please enter city.', city.value.trim() === '');
+    });
+
+    pincode.addEventListener('input', () => {
+        pincode.value = pincode.value.replace(/\D/g, '');
+        showMessage(pincode, 'Please enter valid pincode.', !validatePincode(pincode.value));
+    });
+
+    profileImage.addEventListener('change', () => {
+        const isValid = validateImage(profileImage);
+        showMessage(profileImage, 'Invalid image format.', !isValid);
+    });
+
+    if (passwordInput && confirmPasswordInput) {
+        function checkPasswordsMatch() {
+            const match = passwordInput.value === confirmPasswordInput.value;
+            confirmPasswordMsg.classList.toggle('d-none', match);
+            if (!match) {
+                confirmPasswordMsg.textContent = "Passwords do not match.";
+            }
+        }
+
+        passwordInput.addEventListener('input', () => {
+            showMessage(passwordInput, 'Password must be 8+ chars with digit, special char, and alphabet.', !validatePassword(passwordInput.value));
+            checkPasswordsMatch();
+        });
+
+        confirmPasswordInput.addEventListener('input', checkPasswordsMatch);
+    }
+
+    // Final submit validation
+    form.addEventListener('submit', e => {
+        let valid = true;
+
+        if (!fullName.value.trim()) {
+            showMessage(fullName, 'Please enter full name.', true);
+            valid = false;
+        }
+
+        if (!validateEmail(email.value)) {
+            showMessage(email, 'Please enter a valid email.', true);
+            valid = false;
+        }
+
+        if (!validatePhone(phone.value)) {
+            showMessage(phone, 'Please enter valid phone number.', true);
+            valid = false;
+        }
+
+        if (!gender.value) {
+            showMessage(gender, 'Please select gender.', true);
+            valid = false;
+        }
+
+        if (!address.value.trim()) {
+            showMessage(address, 'Please enter address.', true);
+            valid = false;
+        }
+
+        if (!city.value.trim()) {
+            showMessage(city, 'Please enter city.', true);
+            valid = false;
+        }
+
+        if (!validatePincode(pincode.value)) {
+            showMessage(pincode, 'Please enter valid pincode.', true);
+            valid = false;
+        }
+
+        if (!validateImage(profileImage)) {
+            showMessage(profileImage, 'Invalid image format.', true);
+            valid = false;
+        }
+
+        if (passwordInput) {
+            if (!passwordInput.value) {
+                showMessage(passwordInput, 'Please enter password.', true);
+                valid = false;
+            } else if (!validatePassword(passwordInput.value)) {
+                showMessage(passwordInput, 'Password must be 8+ chars with digit, special char, and alphabet.', true);
+                valid = false;
+            }
+
+            if (!confirmPasswordInput.value) {
+                confirmPasswordMsg.textContent = "Please confirm your password.";
+                confirmPasswordMsg.classList.remove('d-none');
+                valid = false;
+            } else if (passwordInput.value !== confirmPasswordInput.value) {
+                confirmPasswordMsg.textContent = "Passwords do not match.";
+                confirmPasswordMsg.classList.remove('d-none');
+                valid = false;
+            } else {
+                confirmPasswordMsg.classList.add('d-none');
+            }
+        }
+
+        if (!valid) e.preventDefault();
+    });
+
+    // Password visibility toggle
+    document.getElementById('togglePassword')?.addEventListener('click', () => {
+        const type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+        document.getElementById('eyeIcon')?.classList.toggle('fa-eye-slash');
+    });
+
+    document.getElementById('toggleConfirmPassword')?.addEventListener('click', () => {
+        const type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+        confirmPasswordInput.type = type;
+        document.getElementById('eyeIconConfirm')?.classList.toggle('fa-eye-slash');
+    });
+</script>
+
+
+{% endblock %}

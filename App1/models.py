@@ -181,6 +181,16 @@ class Customer(models.Model):
         super().save(*args, **kwargs)
 
 
+class Service_Category(models.Model):
+    service_category_name = models.CharField(max_length=255,null=True, blank=True, unique=True)
+    service_category_description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+    def __str__(self):
+        return self.service_category_name
+
 
 
 
@@ -193,18 +203,10 @@ class Service(models.Model):
         UNISEX = 'Unisex', 'Unisex'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Service_ID
-    salon = models.ForeignKey('Salon', on_delete=models.CASCADE, related_name='services')
-    branch = models.ForeignKey('SalonBranch', on_delete=models.SET_NULL, null=True, blank=True, related_name='services')
-
+   
     service_name = models.CharField(max_length=255)
-    category = models.CharField(max_length=100)  # Optional: you can also use choices
+    category = models.ForeignKey(Service_Category, on_delete=models.CASCADE, null=True, blank=True)
     description = models.TextField()
-
-    base_price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)  # Optional
-    final_price = models.DecimalField(max_digits=10, decimal_places=2)
-
-    estimated_time_min = models.PositiveIntegerField()
     gender_specific = models.CharField(
         max_length=50,
         choices=GenderChoices.choices,

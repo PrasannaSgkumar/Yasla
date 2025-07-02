@@ -1,4 +1,5 @@
 from django.shortcuts import redirect, render
+from jsonschema import ValidationError
 from rest_framework.response import Response
 from rest_framework.decorators import APIView
 from rest_framework import status
@@ -17,9 +18,13 @@ from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
-
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
 
 
 
@@ -862,10 +867,62 @@ class FeedbackDetailView(APIView):
         }, status=status.HTTP_200_OK)
     
 
+@method_decorator(csrf_exempt, name='dispatch')
+class ServiceCategoryListView(APIView):
+
+    @extend_schema(
+        responses={200: ServiceCategorySerializer(many=True)},
+        description="List all service categories"
+    )
+    def get(self, request):
+        try:
+            categories = Service_Category.objects.all().order_by('-created_at')
+            serializer = ServiceCategorySerializer(categories, many=True)
+            return Response({
+                "status": "success",
+                "message": "Service categories retrieved successfully",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": "Failed to retrieve service categories",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+
+class ServiceListView(APIView):
+
+    @extend_schema(
+        description="List all services or filter by category_id, gender_specific, or both",
+        parameters=[
+            OpenApiParameter(name='category_id', type=int, description='UUID of the Service Category'),
+            OpenApiParameter(name='gender_specific', type=str, description='Male / Female / Unisex')
+        ],
+        responses={200: ServiceSerializer(many=True)}
+    )
+    def get(self, request):
+        category_id = request.query_params.get('category_id')
+        gender = request.query_params.get('gender_specific')
+        print(category_id)
+        services = Service.objects.all()
+
+        if category_id:
+            services = services.filter(category=int(category_id))
+        if gender:
+            services = services.filter(gender_specific=gender)
+
+        print(services)
+        serializer = ServiceSerializer(services, many=True)
+        return Response({
+            "status": "success",
+            "message": "Services retrieved successfully",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
 
 #SuperAdmin Views
+
 
 
 def superadminlogin(request):
@@ -890,31 +947,27 @@ def superadminlogin(request):
 
     return render(request, 'admin/admin_login.html')
 
-
 def superadmin_dashboard(request):
-    user=request.session.get('superadmin_username')
-    
-    if not user:
-        
+    username = request.session.get('superadmin_username')
+    if not username:
         return redirect('login')
-    else:
-        user=Superadmin.objects.get(username=user)
-        total_customers=Customer.objects.all().count()
-        total_vendors=Salon.objects.all().count()
-        total_saloons=SalonBranch.objects.all().count()
-        total=total_saloons+total_vendors
-        total_stylist=User.objects.filter(user_role="Stylist").count()
-        top_rated = Salon.objects.all().order_by('-rating')[:4]
 
-        context={
-            'user':user,
-            'total_customers':total_customers,
-            'total_vendors':total_vendors,
-            'total':total,
-            'total_stylist':total_stylist,
-            'top_rated':top_rated
-        }
-        return render(request, 'admin/dashboard.html', context)
+    try:
+        user = Superadmin.objects.get(username=username)
+    except Superadmin.DoesNotExist:
+        return redirect('login')
+
+    context = {
+        'user': user,
+        'total_vendors': Salon.objects.count(),
+        'total_salons': SalonBranch.objects.count(),
+        'total_stylists': User.objects.filter(user_role='Stylist').count(),
+        'total_clients': Customer.objects.count(),
+        'total_appointments': Appointment.objects.count(),
+        'total_revenue': Appointment.objects.aggregate(total=models.Sum('bill_amount'))['total'] or 0
+    }
+
+    return render(request, 'admin/dashboard.html', context)
     
 def saloontable(request):
     user=request.session.get('superadmin_username')
@@ -934,12 +987,10 @@ def saloontable(request):
 
 
 def add_saloon(request):
-    user=request.session.get('superadmin_username')
-    
+    user = request.session.get('superadmin_username')
     if not user:
-        
         return redirect('login')
-    
+
     if request.method == 'POST':
         salon_name = request.POST.get('salonName')
         vendor_name = request.POST.get('vendorName')
@@ -962,8 +1013,23 @@ def add_saloon(request):
         longitude = request.POST.get('longitude') or None
         profile_image = request.FILES.get('profileImage')
 
-       
-        salon = Salon.objects.create(
+        if Salon.objects.filter(email=email).exists():
+            messages.error(request, "Email already exists.")
+            return render(request, 'admin/salon_form.html')
+
+        if Salon.objects.filter(phone=phone).exists():
+            messages.error(request, "Phone number already exists.")
+            return render(request, 'admin/salon_form.html')
+
+        if business_registration and Salon.objects.filter(business_registration=business_registration).exists():
+            messages.error(request, "Business Registration number already exists.")
+            return render(request, 'admin/salon_form.html')
+
+        if gstin and Salon.objects.filter(gstin=gstin).exists():
+            messages.error(request, "GSTIN already exists.")
+            return render(request, 'admin/salon_form.html')
+
+        Salon.objects.create(
             salon_name=salon_name,
             vendor_name=vendor_name,
             email=email,
@@ -981,17 +1047,22 @@ def add_saloon(request):
             state=state,
             pincode=pincode,
             country=country,
-            latitude=latitude if latitude else None,
-            longitude=longitude if longitude else None,
+            latitude=latitude,
+            longitude=longitude,
             profile_image=profile_image
         )
 
-        return redirect('vendors')  
+        messages.success(request, "Vendor added successfully.")
+        return redirect('vendors')
 
     return render(request, 'admin/salon_form.html')
 
 
 def delete_vendor(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+    
     try:
         vendor = Salon.objects.get(id=id)
         if vendor:
@@ -1004,9 +1075,578 @@ def delete_vendor(request, id):
     return redirect('vendors')
 
 
-def logout(request):
-    request.session.flush()
-    return redirect('login')
+def view_vendor(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+
+    try:
+        vendor = Salon.objects.get(id=id)
+    except Salon.DoesNotExist:
+        messages.error(request, "Vendor not found.")
+        return redirect('vendors')
+
+    salon_branches = SalonBranch.objects.filter(salon_id=id)
+    users = User.objects.filter(salon_id=id)
+
+    return render(request, 'admin/salon_details.html', {
+        'vendor': vendor,
+        'salon_branches': salon_branches,
+        'users': users,
+    })
+
+
+
+
+def add_branch(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+
+    try:
+        salon = Salon.objects.get(id=id)
+    except Salon.DoesNotExist:
+        messages.error(request, "Selected salon does not exist.")
+        return redirect('vendors')
+
+    if request.method == 'POST':
+        branch_name = request.POST.get('branchName')
+        salon_category = request.POST.get('salonCategory')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        street_address = request.POST.get('streetAddress')
+        locality = request.POST.get('locality')
+        city = request.POST.get('city')
+        state = request.POST.get('state')
+        pincode = request.POST.get('pincode')
+        country = request.POST.get('country')
+        latitude = request.POST.get('latitude') or None
+        longitude = request.POST.get('longitude') or None
+        opening_time = request.POST.get('openingTime') or None
+        closing_time = request.POST.get('closingTime') or None
+        working_days = request.POST.get('workingDays')
+        is_active = request.POST.get('isActive') == 'true'
+
+        if SalonBranch.objects.filter(email=email).exists():
+            messages.error(request, "Email already exists.")
+            return render(request, 'admin/salon_branch_form.html', {'salon': salon})
+
+        if SalonBranch.objects.filter(phone=phone).exists():
+            messages.error(request, "Phone number already exists.")
+            return render(request, 'admin/salon_branch_form.html', {'salon': salon})
+
+        SalonBranch.objects.create(
+            salon=salon,
+            branch_name=branch_name,
+            salon_category=salon_category,
+            email=email,
+            phone=phone,
+            street_address=street_address,
+            locality=locality,
+            city=city,
+            state=state,
+            pincode=pincode,
+            country=country,
+            latitude=latitude,
+            longitude=longitude,
+            opening_time=opening_time,
+            closing_time=closing_time,
+            working_days=working_days,
+            is_active=is_active
+        )
+
+        messages.success(request, "Branch added successfully!")
+        return redirect('view_salon', id=salon.id)
+
+    return render(request, 'admin/salon_branch_form.html', {'salon': salon})
+
+
+
+def edit_branch(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+
+    branch = get_object_or_404(SalonBranch, id=id)
+
+    if request.method == 'POST':
+        salon_id = request.POST.get('salon_name') or request.POST.get('salon_id')
+        try:
+            salon = Salon.objects.get(id=salon_id)
+        except Salon.DoesNotExist:
+            messages.error(request, "Selected salon does not exist.")
+            return render(request, 'admin/salon_branch_form.html', {
+                'branch': branch,
+                'salon': branch.salon
+            })
+
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+
+        if SalonBranch.objects.filter(email=email).exclude(id=branch.id).exists():
+            messages.error(request, "Email already exists.")
+            return render(request, 'admin/salon_branch_form.html', {
+                'branch': branch,
+                'salon': salon,
+            })
+
+        if SalonBranch.objects.filter(phone=phone).exclude(id=branch.id).exists():
+            messages.error(request, "Phone number already exists.")
+            return render(request, 'admin/salon_branch_form.html', {
+                'branch': branch,
+                'salon': salon,
+            })
+        
+        branch.salon = salon
+        branch.branch_name = request.POST.get('branchName')
+        branch.salon_category = request.POST.get('salonCategory')
+        branch.email = email
+        branch.phone = phone
+        branch.street_address = request.POST.get('streetAddress')
+        branch.locality = request.POST.get('locality')
+        branch.city = request.POST.get('city')
+        branch.state = request.POST.get('state')
+        branch.pincode = request.POST.get('pincode')
+        branch.country = request.POST.get('country')
+        branch.latitude = request.POST.get('latitude') or None
+        branch.longitude = request.POST.get('longitude') or None
+        branch.opening_time = request.POST.get('openingTime')
+        branch.closing_time = request.POST.get('closingTime')
+        branch.working_days = request.POST.get('workingDays')
+        branch.is_active = request.POST.get('isActive') == 'true'
+        branch.save()
+
+        messages.success(request, "Branch details are updated successfully.")
+        return redirect('view_salon', id=salon.id)
+
+    return render(request, 'admin/salon_branch_form.html', {
+        'branch': branch,
+        'salon': branch.salon
+    })
+
+
+def delete_branch(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+    
+    try:
+        branch = SalonBranch.objects.get(id=id)
+        if branch:
+            branch.delete()
+            messages.success(request, "Branch deleted successfully.")
+        else:
+            messages.error(request, "Branch not found.")
+    except SalonBranch.DoesNotExist:
+        messages.error(request, "Branch not found.")
+
+    return redirect('view_salon', id=branch.salon.id)
+
+
+def view_branch(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+
+    try:
+        branch = SalonBranch.objects.get(id=id)
+    except SalonBranch.DoesNotExist:
+        messages.error(request, "Branch not found.")
+        return redirect('view_salon', id=branch.salon.id)
+
+
+    return render(request, 'admin/salon_branch_details.html', {
+        'branch': branch,
+    })
+
+def add_user(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+
+    salon = get_object_or_404(Salon, id=id)
+    branches = SalonBranch.objects.filter(salon=salon)
+
+    context={
+        'salon': salon,
+        'branches': branches,
+    }
+
+    if request.method == 'POST':
+        full_name = request.POST.get('fullName')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        password = request.POST.get('password')
+        user_role = request.POST.get('userRole')
+        status = request.POST.get('status')
+        profile_image = request.FILES.get('profileImage')
+        selected_branch_ids = request.POST.getlist('branchId')
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "Email already exists.")
+            return render(request, 'admin/user_form.html', context)
+
+        if User.objects.filter(phone=phone).exists():
+            messages.error(request, "Phone number already exists.")
+            return render(request, 'admin/user_form.html', context)
+
+        user_obj = User(
+            salon=salon,
+            full_name=full_name,
+            email=email,
+            phone=phone,
+            password=password,
+            user_role=user_role,
+            status=status,
+        )
+
+        if profile_image:
+            user_obj.profile_image = profile_image
+
+        try:
+            user_obj.save()
+            user_obj.branches.set(SalonBranch.objects.filter(id__in=selected_branch_ids))
+            messages.success(request, "User added successfully.")
+            return redirect('view_salon', id=salon.id)
+        except ValidationError as e:
+            messages.error(request, e.message)
+
+    return render(request, 'admin/user_form.html', context)
+
+def edit_user(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+
+    edit_user = get_object_or_404(User, id=id)
+    salon = edit_user.salon
+    branches = SalonBranch.objects.filter(salon=salon)
+
+    context={
+        'edit_user': edit_user,
+        'salon': salon,
+        'branches': branches,
+    }
+
+    if request.method == 'POST':
+
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+
+
+        edit_user.full_name = request.POST.get('fullName')
+        edit_user.email = email
+        edit_user.phone = phone
+        edit_user.user_role = request.POST.get('userRole')
+        edit_user.status = request.POST.get('status')
+
+        if request.FILES.get('profileImage'):
+            edit_user.profile_image = request.FILES.get('profileImage')
+
+        selected_branch_ids = request.POST.getlist('branchId')
+
+        if User.objects.filter(email=email).exclude(id=edit_user.id).exists():
+            messages.error(request, "Email already exists.")
+            return render(request, 'admin/user_form.html', context)
+
+        if User.objects.filter(phone=phone).exclude(id=edit_user.id).exists():
+            messages.error(request, "Phone number already exists.")
+            return render(request, 'admin/user_form.html', context)
+
+        try:
+            edit_user.save()
+            edit_user.branches.set(SalonBranch.objects.filter(id__in=selected_branch_ids))
+            messages.success(request, "User details updated successfully.")
+            return redirect('view_salon', id=salon.id)
+        except ValidationError as e:
+            messages.error(request, e.message)
+
+    return render(request, 'admin/user_form.html', context)
+
+
+def delete_user(request, id):
+    user = request.session.get('superadmin_username')
+    if not user:
+        return redirect('login')
+    try:
+        user = User.objects.get(id=id)
+        if user:
+            user.delete()
+            messages.success(request, "User deleted successfully.")
+        else:
+            messages.error(request, "User not found.")
+    except User.DoesNotExist:
+        messages.error(request, "User not found.")
+
+    return redirect('view_salon', id=user.salon.id)
+
+
+def view_user(request, id):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    try:
+        user = User.objects.get(id=id)
+    except User.DoesNotExist:
+        messages.error(request, "User not found.")
+        return redirect('dashboard')  # or redirect to a user list
+
+    return render(request, 'admin/user_details.html', {
+        'user': user,
+    })
+
+
+def customer_table(request):
+
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+    
+    customers = Customer.objects.all()
+
+    return render(request, 'admin/customer_table.html',{'customers':customers})
+
+# def add_customer(request):
+
+#     user_session = request.session.get('superadmin_username')
+#     if not user_session:
+#         return redirect('login')
+    
+#     if request.method == 'POST':
+#         full_name = request.POST.get('fullName')
+#         email = request.POST.get('email')
+#         phone = request.POST.get('phone')
+#         password = request.POST.get('password')
+#         gender = request.POST.get('gender')
+#         address = request.POST.get('address')
+#         city = request.POST.get('city')
+#         pincode = request.POST.get('pincode')
+#         profile_image = request.FILES.get('profileImage')
+
+
+#         if Customer.objects.filter(phone=phone).exists():
+#             messages.error(request, "Phone number already exists.")
+#             return redirect('add_customer')
+        
+#         if Customer.objects.filter(email=email).exists():
+#             messages.error(request, "Email already exists.")
+#             return redirect('add_customer')
+
+#         customer = Customer(
+#             full_name=full_name,
+#             email=email,
+#             phone=phone,
+#             password=password,
+#             gender=gender,
+#             address=address,
+#             city=city,
+#             pincode=pincode
+#         )
+
+#         if profile_image:
+#             customer.profile_image = profile_image
+
+#         customer.save()
+#         messages.success(request, "Customer added successfully.")
+#         return redirect('customer_table')  
+
+#     return render(request, 'admin/customer_form.html')
+
+
+# def edit_customer(request, id):
+
+#     user_session = request.session.get('superadmin_username')
+#     if not user_session:
+#         return redirect('login')
+    
+#     edit_customer = get_object_or_404(Customer, id=id)
+
+#     if request.method == 'POST':
+#         email = request.POST.get('email')
+#         phone = request.POST.get('phone')
+
+#         if Customer.objects.filter(phone=phone).exclude(id=edit_customer.id).exists():
+#             messages.error(request, "Phone number already exists.")
+#             return render(request, 'admin/customer_form.html', {'edit_customer':edit_customer})
+
+#         if Customer.objects.filter(email=email).exclude(id=edit_customer.id).exists():
+#             messages.error(request, "Email already exists.")
+#             return render(request, 'admin/customer_form.html', {'edit_customer':edit_customer})
+
+#         edit_customer.full_name = request.POST.get('fullName')
+#         edit_customer.email = email
+#         edit_customer.phone = phone
+#         edit_customer.gender = request.POST.get('gender')
+#         edit_customer.address = request.POST.get('address')
+#         edit_customer.city = request.POST.get('city')
+#         edit_customer.pincode = request.POST.get('pincode')
+
+#         if request.FILES.get('profileImage'):
+#             edit_customer.profile_image = request.FILES['profileImage']
+
+#         edit_customer.save()
+#         messages.success(request, "Customer updated successfully.")
+#         return redirect('customer_table')  
+
+#     return render(request, 'admin/customer_form.html', {
+#         'edit_customer': edit_customer
+#     })
+
+
+# def delete_customer(request, id):
+
+#     user_session = request.session.get('superadmin_username')
+#     if not user_session:
+#         return redirect('login')
+    
+#     customer = get_object_or_404(Customer, id=id)
+#     customer.delete()
+#     messages.success(request, "Customer deleted successfully.")
+#     return redirect('customer_table')     
+
+def view_customer(request, id):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    try:
+        customer = Customer.objects.get(id=id)
+    except Customer.DoesNotExist:
+        messages.error(request, "Customer not found.")
+        return redirect('customer_table')
+
+    return render(request, 'admin/customer_details.html', {
+        'customer': customer,
+    })
+
+def payment_table(request):
+
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    payments = Payment.objects.all()
+
+    return render(request, 'admin/payment_table.html', {'payments': payments})
+
+
+def service_table(request):
+
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    services = Service.objects.all()
+
+    return render(request, 'admin/service_table.html', {'services': services})
+
+
+
+def view_payment(request, id):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    try:
+        payment = Payment.objects.get(id=id)
+    except Payment.DoesNotExist:
+        messages.error(request, "Payment not found.")
+        return redirect('payment_table')
+
+    return render(request, 'admin/payment_details.html', {
+        'payment': payment,
+    })
+def add_service(request):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    categories = Service_Category.objects.all()
+
+    if request.method == 'POST':
+        service_name = request.POST.get('service_name')
+        category_id = request.POST.get('category')
+        description = request.POST.get('description')
+        gender_specific = request.POST.get('gender_specific')
+
+        if Service.objects.filter(service_name=service_name).exists():
+            messages.error(request, "Service name already exists.")
+            return render(request, 'admin/service_form.html', {
+                'category': categories,
+                'service_name': service_name,
+                'description': description,
+                'gender_specific': gender_specific
+            })
+
+        # Get the category instance
+        category = Service_Category.objects.filter(id=category_id).first()
+
+        service = Service(
+            service_name=service_name,
+            category=category,
+            description=description,
+            gender_specific=gender_specific
+        )
+        service.save()
+        messages.success(request, "Service added successfully.")
+        return redirect('service_table')
+
+    return render(request, 'admin/service_form.html', {
+        'category': categories
+    })
+
+
+def edit_service(request, id):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    edit_service = get_object_or_404(Service, id=id)
+    categories = Service_Category.objects.all()
+
+    if request.method == 'POST':
+        edit_service.service_name = request.POST.get('service_name')
+        category_id = request.POST.get('category')
+        edit_service.category = Service_Category.objects.filter(id=category_id).first()
+        edit_service.description = request.POST.get('description')
+        edit_service.gender_specific = request.POST.get('gender_specific')
+
+        edit_service.save()
+        messages.success(request, "Service updated successfully.")
+        return redirect('service_table')
+
+    return render(request, 'admin/service_form.html', {
+        'edit_service': edit_service,
+        'category': categories
+    })
+
+
+def delete_service(request, id):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+    
+    service = get_object_or_404(Service, id=id)
+    service.delete()
+    messages.success(request, "Service deleted successfully.")
+    return redirect('service_table')
+
+
+def view_service(request, id):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    try:
+        service = Service.objects.get(id=id)
+    except Service.DoesNotExist:
+        messages.error(request, "Service not found.")
+        return redirect('service_table')
+
+    return render(request, 'admin/service_details.html', {
+        'service': service,
+    })
 
 
 
@@ -1023,3 +1663,77 @@ class RegisterVendorAPIView(APIView):
             serializer.save()
             return Response({"message": "Vendor and user created successfully."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+def service_category_table(request):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+    
+    categories = Service_Category.objects.all()
+    return render(request, 'admin/service_category.html', {
+        'categories': categories,
+    })
+
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from .models import Service_Category
+
+def add_category(request):
+    if request.method == 'POST':
+        service_name = request.POST.get('service_name', '').strip()
+        description = request.POST.get('description', '').strip()
+
+        if not service_name:
+            messages.error(request, "Service name is required.")
+            return redirect('service_category_table')
+
+        if Service_Category.objects.filter(service_category_name=service_name).exists():
+            messages.error(request, "Service Category name already exists.")
+            return redirect('service_category_table')
+
+        service = Service_Category.objects.create(
+            service_category_name=service_name,
+            service_category_description=description
+        )
+        messages.success(request, "Service Category added successfully.")
+        return redirect('service_category_table')  # or redirect to list view
+
+    return render(request, 'admin/service_category_form.html')
+
+
+def edit_category(request, service_id):
+    service = get_object_or_404(Service_Category, id=service_id)
+
+    if request.method == 'POST':
+        service_name = request.POST.get('service_name', '').strip()
+        description = request.POST.get('description', '').strip()
+
+        if not service_name:
+            messages.error(request, "Service name is required.")
+            return redirect('service_category_table')
+
+        # Check for duplicate only if name changed
+        if Service_Category.objects.exclude(id=service_id).filter(service_category_name=service_name).exists():
+            messages.error(request, "Another service Category with this name already exists.")
+            return redirect('service_category_table')
+
+        service.service_category_name = service_name
+        service.service_category_description = description
+        service.save()
+        messages.success(request, "Service Category updated successfully.")
+        return redirect('service_category_table')
+
+    return render(request, 'admin/service_category_form.html', {
+        'edit_service': service
+    })
+
+
+def delete_category(request, service_id):
+    service = get_object_or_404(Service_Category, id=service_id)
+    service.delete()
+    messages.success(request, "Service Category deleted successfully.")
+    return redirect('service_category_table')

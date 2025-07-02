@@ -1,0 +1,66 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    .user-card-header {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.2rem;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .user-label {
+        color: #9333ea;
+        font-weight: 600;
+    }
+
+    .user-value {
+        color: #22223b;
+    }
+
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 8%, #9333ea 16%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+    }
+
+    .btn-back {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+    <h2 class="my-4 gradient-title">Service Details</h2>
+    <div class="row g-4">
+
+        <!-- Service Info -->
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-cut me-2"></i>Service Information
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Service Name:</span> <span class="user-value">{{ service.service_name }}</span></p>
+                    <p><span class="user-label">Category:</span> <span class="user-value">{{ service.category }}</span></p>
+                    <p><span class="user-label">Description:</span> <span class="user-value">{{ service.description }}</span></p>
+                    <p><span class="user-label">Gender Specific:</span> <span class="user-value">{{ service.gender_specific }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-4">
+            <button onclick="window.history.back()" class="btn btn-back">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

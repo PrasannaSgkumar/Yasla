@@ -1,0 +1,216 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    body {
+        background: linear-gradient(120deg, #f8fafc 60%, #f3e8ff 100%);
+        font-family: 'Poppins', Arial, sans-serif;
+    }
+
+    .card {
+        border-radius: 1.2rem;
+        box-shadow: 0 6px 32px 0 rgba(31, 38, 135, 0.10);
+        width: 100%;
+        max-width: 1300px;
+        margin: 0 auto;
+        border: none;
+    }
+
+    .form-label i {
+        color: #9333ea;
+    }
+
+    .profile-img-preview {
+        width: 100px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid #ec4899;
+        margin-bottom: 0.5rem;
+        background: #f3e8ff;
+    }
+
+    .user-btn {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 50%, #9333ea 100%);
+        color: #fff;
+        border-radius: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        border: none;
+        box-shadow: 0 2px 8px #9333ea22;
+    }
+
+    .user-btn:hover {
+        background: linear-gradient(90deg, #db2777 0%, #7c3aed 100%);
+        color: #fff;
+    }
+
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+        font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+        letter-spacing: 1px;
+    }
+
+    .input-group-text,
+    .form-control,
+    .form-select {
+        font-size: 1rem;
+    }
+
+    .input-group .btn {
+        border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    .input-group input {
+        border-radius: 0.5rem 0 0 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 0.5rem;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #9333ea;
+        box-shadow: 0 0 0 2px #9233ea41;
+    }
+
+    label.form-label {
+        font-weight: 500;
+        letter-spacing: 0.2px;
+    }
+
+    @media (max-width: 991.98px) {
+        .card {
+            max-width: 98%;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .card {
+            max-width: 100%;
+            padding: 1rem !important;
+        }
+
+        .profile-img-preview {
+            width: 80px;
+            height: 64px;
+        }
+    }
+</style>
+
+
+<div class="container py-5">
+    <div class="card p-4">
+        <h3 class="text-center mb-4 gradient-title">
+            {% if edit_service %}Edit{% else %}Add{% endif %} Service
+        </h3>
+
+        <form method="post" enctype="multipart/form-data" id="serviceForm"
+              action="{% if edit_service %}{% url 'edit_service' edit_service.id %}{% else %}{% url 'add_service' %}{% endif %}">
+         
+            {% csrf_token %}
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label class="form-label"><i class="fa-solid fa-scissors me-2"></i>Service Name</label>
+                    <input type="text" class="form-control" name="service_name" value="{{ edit_service.service_name|default:'' }}" placeholder="Enter service name">
+                    <div class="text-danger d-none">Please enter service name.</div>
+                </div>
+
+              <div class="col-md-4">
+    <label class="form-label"><i class="fa-solid fa-layer-group me-2"></i>Category</label>
+    <select class="form-select" name="category">
+        <option value="">-- Select Category --</option>
+        {% for cat in category %}
+            <option value="{{ cat.id }}"
+                {% if edit_service and edit_service.category.id == cat.id %}selected{% endif %}>
+                {{ cat.service_category_name }}
+            </option>
+        {% endfor %}
+    </select>
+    <div class="text-danger d-none">Please select a category.</div>
+</div>
+
+
+                <div class="col-md-4">
+                    <label class="form-label"><i class="fa-solid fa-venus-mars me-2"></i>Gender Specific</label>
+                    <select class="form-select" name="gender_specific">
+                        <option value="" hidden>-- Select Gender --</option>
+                        <option value="Unisex" {% if edit_service.gender_specific == 'Unisex' %}selected{% endif %}>Unisex</option>
+                        <option value="Male" {% if edit_service.gender_specific == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if edit_service.gender_specific == 'Female' %}selected{% endif %}>Female</option>
+                    </select>
+                    <div class="text-danger d-none">Please select gender.</div>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label"><i class="fa-solid fa-align-left me-2"></i>Description</label>
+                    <textarea class="form-control" name="description" rows="3" placeholder="Enter description">{{ edit_service.description|default:'' }}</textarea>
+                    <div class="text-danger d-none">Please enter description.</div>
+                </div>
+
+                
+            </div>
+
+            <button type="submit" class="btn user-btn w-100 mt-4">
+                <i class="fa-solid fa-floppy-disk me-2"></i>
+                {% if edit_service %}Update Service{% else %}Add Service{% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const serviceForm = document.getElementById("serviceForm");
+    const fields = [ "service_name", "category", "description", "gender_specific"];
+
+    function showError(field, msg) {
+        const input = serviceForm.elements[field];
+        const error = input?.closest('.col-md-6, .col-md-4, .col-md-12')?.querySelector('.text-danger');
+        if (input && error) {
+            error.textContent = msg;
+            error.classList.remove("d-none");
+        }
+    }
+
+    function hideError(field) {
+        const input = serviceForm.elements[field];
+        const error = input?.closest('.col-md-6, .col-md-4, .col-md-12')?.querySelector('.text-danger');
+        if (input && error) {
+            error.classList.add("d-none");
+        }
+    }
+
+    serviceForm.addEventListener("submit", function (e) {
+        let isValid = true;
+
+        fields.forEach(field => {
+            const input = serviceForm.elements[field];
+            const value = input?.value?.trim();
+
+            if (!value) {
+                showError(field, `Please enter ${field.replace(/_/g, ' ')}.`);
+                isValid = false;
+            } else {
+                hideError(field);
+            }
+        });
+
+        if (!isValid) e.preventDefault();
+    });
+</script>
+
+{% endblock %}

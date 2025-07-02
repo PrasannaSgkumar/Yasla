@@ -1,0 +1,224 @@
+<!-- {% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    .user-card-header {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.2rem;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .user-label {
+        color: #9333ea;
+        font-weight: 600;
+    }
+
+    .user-value {
+        color: #22223b;
+    }
+
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 8%, #9333ea 16%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+    }
+
+    .btn-back {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+    }
+
+    .profile-img {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #9333ea;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+    <h2 class="my-4 gradient-title">Payment Details</h2>
+    <div class="row g-4">
+
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-credit-card me-2"></i>Transaction Info
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Transaction ID:</span> <span class="user-value">{{ payment.transaction_id|default:"N/A" }}</span></p>
+                    <p><span class="user-label">Date:</span> <span class="user-value">{{ payment.transaction_date|date:"d M Y H:i" }}</span></p>
+                    <p><span class="user-label">Amount:</span> <span class="user-value">₹{{ payment.amount|default:"0.00" }}</span></p>
+                    <p><span class="user-label">Payment Mode:</span> <span class="user-value">{{ payment.payment_mode|default:"N/A" }}</span></p>
+                    <p><span class="user-label">Status:</span> 
+                        <span class="user-value">
+                            {% if payment.status == "Paid" %}
+                                <span class="badge bg-success">{{ payment.status }}</span>
+                            {% elif payment.status == "Failed" %}
+                                <span class="badge bg-danger">{{ payment.status }}</span>
+                            {% elif payment.status == "Refunded" %}
+                                <span class="badge bg-warning text-dark">{{ payment.status }}</span>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-user me-2"></i>Customer & Booking Info
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Customer Name:</span> 
+                        <span class="user-value">
+                            {% if payment.customer %}
+                                {{ payment.customer.full_name }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </span>
+                    </p>
+                    <p><span class="user-label">Customer Phone:</span> 
+                        <span class="user-value">
+                            {% if payment.customer %}
+                                {{ payment.customer.phone }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </span>
+                    </p>
+                    <p><span class="user-label">Booking ID:</span> 
+                        <span class="user-value">
+                            {% if payment.booking %}
+                                {{ payment.booking.id }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button onclick="window.history.back()" class="btn btn-back">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock content %} -->
+
+
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    .user-card-header {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.2rem;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .user-label {
+        color: #9333ea;
+        font-weight: 600;
+    }
+
+    .user-value {
+        color: #22223b;
+    }
+
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 8%, #9333ea 16%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+    }
+
+    .btn-back {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+    }
+
+    .profile-img {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #9333ea;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+    <h2 class="my-4 gradient-title">Payment Details</h2>
+    <div class="row g-4">
+
+        <!-- Transaction Info -->
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-credit-card me-2"></i>Transaction Info
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Transaction ID:</span> <span class="user-value">TXN123456789</span></p>
+                    <p><span class="user-label">Date:</span> <span class="user-value">27 Jun 2025 14:30</span></p>
+                    <p><span class="user-label">Amount:</span> <span class="user-value">₹499.99</span></p>
+                    <p><span class="user-label">Payment Mode:</span> <span class="user-value">UPI</span></p>
+                    <p><span class="user-label">Status:</span> 
+                        <span class="user-value">
+                            <span class="badge bg-success">Paid</span>
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer & Booking Info -->
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-user me-2"></i>Customer & Booking Info
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Customer Name:</span> 
+                        <span class="user-value">John Doe</span>
+                    </p>
+                    <p><span class="user-label">Customer Phone:</span> 
+                        <span class="user-value">+91 9876543210</span>
+                    </p>
+                    <p><span class="user-label">Booking ID:</span> 
+                        <span class="user-value">112233</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-4">
+            <button onclick="window.history.back()" class="btn btn-back">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+

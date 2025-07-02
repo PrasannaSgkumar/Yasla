@@ -14,6 +14,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'admin/css/message.css' %}">
+    <script src="{% static 'admin/js/message.js' %}"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
         :root {
@@ -126,7 +133,6 @@
         }
         main {
             width: 100%; padding: 0.5rem; background: var(--grey); min-height: 100vh;
-            border-radius: 1.5rem; margin-top: 1rem; box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.04);
         }
         .notification, .inv-notification {
             position: relative; display: inline-block; margin-right: 10px;
@@ -189,6 +195,19 @@
     {% endblock %}
 </head>
 <body>
+    {% if messages %}
+                <div id="alert-container">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-white rounded">
+                            <div class="icon">
+                                {% if message.tags == "success" %}<i class="fa fa-check"></i>{% endif %}
+                                {% if message.tags == "error" %}<i class="fa fa-times-circle"></i>{% endif %}
+                            </div>
+                            <p><strong>{{ message.tags|capfirst }}!</strong> {{ message }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
     <!-- SIDEBAR -->
     <section id="sidebar">
         <div class="brand">
@@ -198,19 +217,21 @@
         <ul class="side-menu">
             <li><a href="{% url 'dashboard' %}" class="active"><i class='bx bxs-dashboard icon'></i> <span>Dashboard</span></a></li>
             <li><a href="{% url 'vendors' %}"><i class='fa fa-calendar-check icon'></i> <span>Vendors</span></a></li>
-            {% comment %} <li><a href="#"><i class='fa fa-flask icon'></i> <span>Specialities</span></a></li>
-            <li><a href="#"><i class='fa fa-calendar icon'></i> <span>Schedule</span></a></li> {% endcomment %}
+            <li><a href="{% url 'customer_table' %}"><i class='fa fa-user-injured icon'></i> <span>Clients</span></a></li>
+             <li><a href="{% url 'service_category_table' %}"><i class="fa fa-spa icon"></i> <span>Service Category</span></a></li>
+            <li><a href="{% url 'service_table' %}"><i class="fa fa-spa icon"></i> <span>Services</span></a></li>
+            <li><a href="#"><i class='fa fa-calendar icon'></i> <span>Schedule</span></a></li>
             <li><a href="#"><i class='fa fa-bookmark icon'></i> <span>Booking</span></a></li>
-            <li><a href="#"><i class='fa fa-users icon'></i> <span>Users</span></a></li>
-            <li><a href="#"><i class='fa fa-user-injured icon'></i> <span>Customers</span></a></li>
-            <li><a href="#"><i class='fa fa-credit-card icon'></i> <span>Transactions</span></a></li>
-            <li><a href="#"><i class='fa fa-sliders-h icon'></i> <span>Tickets</span></a></li>
+            <li><a href="#"><i class='fa fa-users icon'></i> <span>Staff</span></a></li>
+            <li><a href="{% url 'payment_table' %}"><i class='fa fa-credit-card icon'></i> <span>Payments</span></a></li>
+            <li><a href="#"><i class='fa fa-sliders-h icon'></i> <span>Settings</span></a></li>
         </ul>
     </section>
     <!-- SIDEBAR -->
 
     <!-- NAVBAR & CONTENT -->
     <section id="content">
+   
         <nav>
             <i class='bx bx-menu toggle-sidebar gradient-text'></i>
             <form action="#" class="nav_searchbar">
@@ -245,13 +266,13 @@
                 </ul>
             </div>
             <span class="divider"></span>
-            <div class="profile_name gradient-text">Admin</div>
+            <div class="profile_name gradient-text">{{ user.full_name }}</div>
             <div class="profile">
                 <img src="{% static 'images/avatar-04.jpg' %}" alt="Profile" class="profile-img" style="width:36px; height:36px; border-radius:50%; object-fit:cover; cursor:pointer;" >
                 <ul class="profile-link">
                     <li><a href="#"><i class='bx bxs-user-circle icon'></i>Profile</a></li>
                     <li><a href="#"><i class='bx bxs-cog'></i>Settings</a></li>
-                    <li><a href="{% url 'logout' %}"><i class='bx bxs-log-out-circle'></i>Logout</a></li>
+                    <li><a href="#"><i class='bx bxs-log-out-circle'></i>Logout</a></li>
                 </ul>
             </div>
         </nav>
@@ -262,12 +283,27 @@
         </main>
     </section>
 
+    
+
     <script>
-        // Sidebar toggle
+
+        // Toggle sidebar collapse
         const sidebar = document.getElementById('sidebar');
         const toggleSidebarBtn = document.querySelector('nav .toggle-sidebar');
         toggleSidebarBtn.addEventListener('click', function () {
             sidebar.classList.toggle('collapsed');
+        });
+
+        // Highlight active sidebar link
+        document.querySelectorAll('#sidebar .side-menu a').forEach(function(link) {
+            if (
+                (link.href === window.location.href || window.location.pathname === link.pathname)
+                && link.getAttribute('href') !== '#'
+            ) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
         });
 
         // Profile dropdown
