@@ -147,3 +147,47 @@ class ServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Service
         fields = '__all__'
+
+
+class SalonServiceAvailabilitySerializer(serializers.ModelSerializer):
+    salon_id = serializers.IntegerField(required=False, write_only=True)
+    branch_id = serializers.IntegerField(required=False, write_only=True)
+    salon = serializers.StringRelatedField(read_only=True)
+    branch = serializers.StringRelatedField(read_only=True)
+    service_name = serializers.CharField(source='service.service_name', read_only=True)
+
+    class Meta:
+        model = SalonServiceAvailability
+        fields = [
+            'id', 'service', 'service_name', 'salon_id', 'branch_id',
+            'salon', 'branch', 'is_available', 'cost',
+            'completion_time', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'salon', 'branch', 'service_name']
+
+    def validate(self, data):
+        salon = data.get('salon_id')
+        branch = data.get('branch_id')
+
+        if not salon and not branch:
+            raise serializers.ValidationError("Either 'salon_id' or 'branch_id' must be provided.")
+        if salon and branch:
+            raise serializers.ValidationError("Provide only one: either 'salon_id' or 'branch_id', not both.")
+
+        return data
+
+    def create(self, validated_data):
+        salon_id = validated_data.pop('salon_id', None)
+        branch_id = validated_data.pop('branch_id', None)
+
+        if salon_id:
+            validated_data['salon'] = Salon.objects.get(id=salon_id)
+        if branch_id:
+            validated_data['branch'] = SalonBranch.objects.get(id=branch_id)
+
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('salon_id', None)
+        validated_data.pop('branch_id', None)
+        return super().update(instance, validated_data)

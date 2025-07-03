@@ -920,6 +920,71 @@ class ServiceListView(APIView):
             "message": "Services retrieved successfully",
             "data": serializer.data
         }, status=status.HTTP_200_OK)
+    
+
+class SalonServiceAvailabilityListCreateAPI(APIView):
+
+    def get(self, request):
+        salon_id = request.query_params.get('salon_id')
+        branch_id = request.query_params.get('branch_id')
+
+        if not salon_id and not branch_id:
+            return Response({
+                'status': 'error',
+                'message': 'Please provide salon_id or branch_id as a query parameter.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if salon_id:
+            availabilities = SalonServiceAvailability.objects.filter(salon_id=salon_id)
+        else:
+            availabilities = SalonServiceAvailability.objects.filter(branch_id=branch_id)
+
+        serializer = SalonServiceAvailabilitySerializer(availabilities, many=True)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = SalonServiceAvailabilitySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'status': 'success',
+                'message': 'Service availability created successfully.',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            'status': 'error',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SalonServiceAvailabilityDetailAPI(APIView):
+
+    def get(self, request, id):
+        instance = get_object_or_404(SalonServiceAvailability, id=id)
+        serializer = SalonServiceAvailabilitySerializer(instance)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def put(self, request, id):
+        instance = get_object_or_404(SalonServiceAvailability, id=id)
+        serializer = SalonServiceAvailabilitySerializer(instance, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'status': 'success',
+                'message': 'Service availability updated successfully.',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response({
+            'status': 'error',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
 
 #SuperAdmin Views
 

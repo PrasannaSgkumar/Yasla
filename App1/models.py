@@ -29,7 +29,6 @@ class Salon(models.Model):
         MEN = 'Men', 'Men'
         WOMEN = 'Women', 'Women'
         UNISEX = 'Unisex', 'Unisex'
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     salon_name = models.CharField(max_length=255)
     vendor_name = models.CharField(max_length=255)
     email = models.EmailField()
@@ -65,7 +64,6 @@ class SalonBranch(models.Model):
         MEN = 'Men', 'Men'
         WOMEN = 'Women', 'Women'
         UNISEX = 'Unisex', 'Unisex'
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     salon = models.ForeignKey(Salon, on_delete=models.CASCADE, related_name='branches')
     salon_category = models.CharField(
         max_length=100,
@@ -94,8 +92,7 @@ class SalonBranch(models.Model):
         return f"{self.branch_name} ({self.city})"
 
 
-class SalonGallery(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Media_ID
+class SalonGallery(models.Model):  # Media_ID
     salon = models.ForeignKey('Salon', on_delete=models.CASCADE, related_name='gallery')
     branch = models.ForeignKey('SalonBranch', on_delete=models.SET_NULL, null=True, blank=True, related_name='gallery')  # Optional: allows None for global salon images
     image = models.ImageField(upload_to='salon_gallery/')  # Uploads to MEDIA_ROOT/salon_gallery/
@@ -116,7 +113,6 @@ class User(models.Model):
         RECEPTIONIST = 'Receptionist', 'Receptionist'
         MANAGER = 'Manager', 'Manager'
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     salon = models.ForeignKey(Salon, on_delete=models.CASCADE, related_name='users')
     full_name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
@@ -155,8 +151,7 @@ class Customer(models.Model):
         MALE = 'Male', 'Male'
         FEMALE = 'Female', 'Female'
         OTHER = 'Other', 'Other'
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  
+  
     full_name = models.CharField(max_length=255)
     email = models.EmailField(null=True, blank=True)  
     phone = models.CharField(max_length=15, unique=True)
@@ -201,8 +196,7 @@ class Service(models.Model):
         MALE = 'Male', 'Male'
         FEMALE = 'Female', 'Female'
         UNISEX = 'Unisex', 'Unisex'
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Service_ID
+  # Service_ID
    
     service_name = models.CharField(max_length=255)
     category = models.ForeignKey(Service_Category, on_delete=models.CASCADE, null=True, blank=True)
@@ -247,8 +241,7 @@ class Appointment(models.Model):
     class BookingSourceChoices(models.TextChoices):
         APP = 'App', 'App'
         WALKIN = 'Walk-in', 'Walk-in'
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  
+  
 
     salon = models.ForeignKey('Salon', on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
     customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
@@ -309,6 +302,46 @@ class Appointment(models.Model):
 
 
 
+class SalonServiceAvailability(models.Model):
+    service = models.ForeignKey('Service', on_delete=models.CASCADE, related_name='available_in')
+
+    # Optional link to salon or branch (only one should be filled)
+    salon = models.ForeignKey('Salon', on_delete=models.CASCADE, null=True, blank=True, related_name='services_available')
+    branch = models.ForeignKey('SalonBranch', on_delete=models.CASCADE, null=True, blank=True, related_name='services_available')
+
+    is_available = models.BooleanField(default=True)
+    cost = models.DecimalField(max_digits=10, decimal_places=2)
+    completion_time = models.DurationField(help_text="Time format: hh:mm:ss (e.g., 00:45:00)")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(salon__isnull=False, branch__isnull=True) |
+                    models.Q(salon__isnull=True, branch__isnull=False)
+                ),
+                name="only_one_location",  # Only salon or branch must be provided
+            ),
+            models.UniqueConstraint(
+                fields=['service', 'salon'],
+                condition=models.Q(salon__isnull=False),
+                name='unique_service_per_salon'
+            ),
+            models.UniqueConstraint(
+                fields=['service', 'branch'],
+                condition=models.Q(branch__isnull=False),
+                name='unique_service_per_branch'
+            ),
+        ]
+
+    def __str__(self):
+        location = self.branch.branch_name if self.branch else self.salon.salon_name
+        return f"{self.service.service_name} @ {location}"
+
+
 
 
 
@@ -339,8 +372,7 @@ class Payment(models.Model):
         PAID = 'Paid', 'Paid'
         FAILED = 'Failed', 'Failed'
         REFUNDED = 'Refunded', 'Refunded'
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # Payment_ID
+  # Payment_ID
 
     booking = models.ForeignKey('Appointment', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
     customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
