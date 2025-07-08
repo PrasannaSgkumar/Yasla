@@ -618,13 +618,26 @@ class ServiceDetailView(APIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class AppointmentView(APIView):
     def get(self, request):
+        branch_id = request.query_params.get('branch_id')
+        salon_id = request.query_params.get('salon_id')
+        stylist_id = request.query_params.get('stylist_id')
+
         appointments = Appointment.objects.all()
+
+        if branch_id:
+            appointments = appointments.filter(branch_id=branch_id)
+        elif salon_id:
+            appointments = appointments.filter(salon_id=salon_id)
+        elif stylist_id:
+            appointments = appointments.filter(stylist_id=stylist_id)
+
         serializer = AppointmentSerializer(appointments, many=True)
         return Response({
             "status": "success",
             "message": "Appointments retrieved successfully",
             "data": serializer.data
         })
+
 
     def post(self, request):
         serializer = AppointmentSerializer(data=request.data)
@@ -984,6 +997,181 @@ class SalonServiceAvailabilityDetailAPI(APIView):
             'status': 'error',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SalonServiceCategoryView(APIView):
+
+    def get(self, request):
+        try:
+            categories = Salon_Service_Category.objects.all()
+            serializer = SalonServiceCategorySerializer(categories, many=True)
+            return Response({
+                "status": "success",
+                "message": "Service Categories fetched successfully",
+                "data": serializer.data
+            }, status=200)
+        except Exception as e:
+            return Response({"status": "error", "message": str(e)}, status=500)
+
+    def post(self, request):
+        try:
+            serializer = SalonServiceCategorySerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(approved=False)
+                return Response({
+                    "status": "success",
+                    "message": "Service Category created successfully",
+                    "data": serializer.data
+                }, status=201)
+            return Response({
+                "status": "error",
+                "message": "Invalid data",
+                "errors": serializer.errors
+            }, status=400)
+        except Exception as e:
+            return Response({"status": "error", "message": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SalonServiceCategoryDetailView(APIView):
+
+    def get(self, request, id):
+        try:
+            category = get_object_or_404(Salon_Service_Category, id=id)
+            serializer = SalonServiceCategorySerializer(category)
+            return Response({
+                "status": "success",
+                "message": "Service Category fetched successfully",
+                "data": serializer.data
+            })
+        except Exception as e:
+            return Response({"status": "error", "message": str(e)}, status=404)
+
+    def put(self, request, id):
+        try:
+            category = get_object_or_404(Salon_Service_Category, id=id)
+            serializer = SalonServiceCategorySerializer(category, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    "status": "success",
+                    "message": "Service Category updated successfully",
+                    "data": serializer.data
+                })
+            return Response({
+                "status": "error",
+                "message": "Invalid data",
+                "errors": serializer.errors
+            }, status=400)
+        except Exception as e:
+            return Response({"status": "error", "message": str(e)}, status=500)
+
+    def delete(self, request, id):
+        try:
+            category = get_object_or_404(Salon_Service_Category, id=id)
+            category.delete()
+            return Response({
+                "status": "success",
+                "message": "Service Category deleted successfully"
+            }, status=200)
+        except Exception as e:
+            return Response({"status": "error", "message": str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SalonServiceView(APIView):
+
+    def get(self, request):
+        try:
+            services = Salon_Service.objects.all()
+            serializer = SalonServiceSerializer(services, many=True)
+            return Response({
+                "status": "success",
+                "message": "Salon Services retrieved successfully",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"Error retrieving salon services: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request):
+        try:
+            serializer = SalonServiceSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(approved=False)
+                return Response({
+                    "status": "success",
+                    "message": "Salon Service created successfully",
+                    "data": serializer.data
+                }, status=status.HTTP_201_CREATED)
+            return Response({
+                "status": "error",
+                "message": "Validation failed",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"Error creating salon service: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class SalonServiceDetailView(APIView):
+
+    def get(self, request, id):
+        try:
+            service = get_object_or_404(Salon_Service, id=id)
+            serializer = SalonServiceSerializer(service)
+            return Response({
+                "status": "success",
+                "message": "Salon Service retrieved successfully",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"Error retrieving service: {str(e)}"
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, id):
+        try:
+            service = get_object_or_404(Salon_Service, id=id)
+            serializer = SalonServiceSerializer(service, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    "status": "success",
+                    "message": "Salon Service updated successfully",
+                    "data": serializer.data
+                }, status=status.HTTP_200_OK)
+            return Response({
+                "status": "error",
+                "message": "Validation failed",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"Error updating service: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete(self, request, id):
+        try:
+            service = get_object_or_404(Salon_Service, id=id)
+            service.delete()
+            return Response({
+                "status": "success",
+                "message": "Salon Service deleted successfully"
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"Error deleting service: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #SuperAdmin Views
@@ -1748,6 +1936,10 @@ from django.contrib import messages
 from .models import Service_Category
 
 def add_category(request):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+    
     if request.method == 'POST':
         service_name = request.POST.get('service_name', '').strip()
         description = request.POST.get('description', '').strip()
@@ -1771,6 +1963,10 @@ def add_category(request):
 
 
 def edit_category(request, service_id):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+    
     service = get_object_or_404(Service_Category, id=service_id)
 
     if request.method == 'POST':
@@ -1798,7 +1994,86 @@ def edit_category(request, service_id):
 
 
 def delete_category(request, service_id):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+    
     service = get_object_or_404(Service_Category, id=service_id)
     service.delete()
     messages.success(request, "Service Category deleted successfully.")
     return redirect('service_category_table')
+
+
+
+def salon_service_category(request):
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+    
+    categories = Salon_Service_Category.objects.all()
+
+    return render(request, 'admin/salon_service_category.html', {'categories': categories})
+
+
+
+def salon_service_table(request, id):
+
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return redirect('login')
+
+    services = Salon_Service.objects.filter(category=id)
+
+    return render(request, 'admin/salon_service_table.html', {'services': services})
+
+
+
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from .models import (
+    Salon_Service, Salon_Service_Category,
+    Service, Service_Category
+)
+
+@csrf_exempt
+
+def approve_service_category(request, id):
+    if request.method == "POST":
+        try:
+            # Step 1: Get the unapproved category
+            salon_category = Salon_Service_Category.objects.get(id=id)
+
+            if salon_category.approved:
+                return JsonResponse({"status": "info", "message": "Category already approved."})
+
+            # Step 2: Create a new Service_Category
+            main_category = Service_Category.objects.create(
+                service_category_name=salon_category.service_category_name,
+                service_category_description=salon_category.service_category_description
+            )
+
+            # Step 3: Get all services linked to this category
+            related_services = Salon_Service.objects.filter(category=salon_category, approved=False)
+
+            for s in related_services:
+                Service.objects.create(
+                    service_name=s.service_name,
+                    category=main_category,
+                    description=s.description,
+                    gender_specific=s.gender_specific
+                )
+                s.approved = True
+                s.save()
+
+            # Step 4: Mark the salon category as approved
+            salon_category.approved = True
+            salon_category.save()
+
+            return JsonResponse({"status": "success", "message": "Category and linked services approved and created."})
+
+        except Salon_Service_Category.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Category not found."}, status=404)
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)

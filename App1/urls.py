@@ -46,10 +46,14 @@ urlpatterns = [
     #login Api's
     path('customer_login', CustomerLoginView.as_view(), name='customer-login'),
     path('user_login', UserLoginView.as_view(), name='user-login'),
-     path('api/service-availability/', SalonServiceAvailabilityListCreateAPI.as_view(), name='availability-list-create'),
+    path('api/service-availability/', SalonServiceAvailabilityListCreateAPI.as_view(), name='availability-list-create'),
     path('api/service-availability/<int:id>/', SalonServiceAvailabilityDetailAPI.as_view(), name='availability-detail'),
 
+    path('api/salon-services/', SalonServiceView.as_view(), name='salon-services'),
+    path('api/salon-services/<int:id>/', SalonServiceDetailView.as_view(), name='salon-service-detail'),
 
+    path('api/service-categories/', SalonServiceCategoryView.as_view(), name='service-category-list-create'),
+    path('api/service-categories/<int:id>/', SalonServiceCategoryDetailView.as_view(), name='service-category-detail'),
     #Super Admin Urls
     #Super Admin Urls
    
@@ -94,5 +98,8 @@ urlpatterns = [
    
     path('edit_category/<int:id>/', edit_category, name='edit_category'),
     path('delete_category/<int:id>/', delete_category, name='delete_category'),
+    path('salon_service_category', salon_service_category, name="salon_service_category"),
+    path('salon_services_new/<int:id>/', salon_service_table, name="salon_services_new"),
+    path('admin/approve-category/<int:id>/', approve_service_category, name='approve-category'),
 
 ]

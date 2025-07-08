@@ -426,3 +426,50 @@ class Feedback(models.Model):
         indexes = [
             models.Index(fields=['customer', 'booking']),
         ]
+
+
+
+
+
+class Salon_Service_Category(models.Model):
+    service_category_name = models.CharField(max_length=255,null=True, blank=True, unique=True)
+    service_category_description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_salon=models.ForeignKey(Salon, on_delete=models.CASCADE, null=True, blank=True)
+    created_branch=models.ForeignKey(SalonBranch, on_delete=models.CASCADE, null=True, blank=True)
+    approved=models.BooleanField(default=False)
+    approved_by=models.CharField(max_length=25, null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return self.service_category_name
+    
+
+
+class Salon_Service(models.Model):
+    class GenderChoices(models.TextChoices):
+        MALE = 'Male', 'Male'
+        FEMALE = 'Female', 'Female'
+        UNISEX = 'Unisex', 'Unisex'
+  # Service_ID
+   
+    service_name = models.CharField(max_length=255)
+    category = models.ForeignKey(Salon_Service_Category, on_delete=models.CASCADE, null=True, blank=True)
+    description = models.TextField()
+    gender_specific = models.CharField(
+        max_length=50,
+        choices=GenderChoices.choices,
+        default=GenderChoices.UNISEX
+    )
+    created_salon=models.ForeignKey(Salon, on_delete=models.CASCADE, null=True, blank=True)
+    created_branch=models.ForeignKey(SalonBranch, on_delete=models.CASCADE, null=True, blank=True)
+    approved=models.BooleanField(default=False)
+    approved_by=models.CharField(max_length=25, null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.service_name

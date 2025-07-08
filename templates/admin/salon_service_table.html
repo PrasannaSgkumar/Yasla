@@ -1,0 +1,436 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block content %}
+<style>
+    :root {
+        --primary: #9333ea;
+        --primary-light: #ec4899;
+        --dark: #1e293b;
+        --light: #f8fafc;
+        --gray: #94a3b8;
+        --border-radius: 8px;
+    }
+
+    .dashboard-container {
+        margin: 0 auto;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .dashboard-header {
+        padding: 20px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .dashboard-title {
+        font-weight: 700;
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        margin: 0;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .user-table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .user-table thead th {
+        background-color: #f3e8ff;
+        color: #9333ea;
+        font-weight: bold;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 12px 16px;
+        text-align: left;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        white-space: nowrap;
+    }
+
+    .user-table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .user-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .user-table td {
+        padding: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+    }
+
+    .profile-img-thumb {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #ec4899;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-active {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .status-inactive {
+        background-color: #fef9c3;
+        color: #854d0e;
+    }
+
+    .status-blocked {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .action-btns .btn {
+        margin-right: 0.25rem;
+    }
+
+    .dashboard-footer {
+        padding: 10px 10px 0px 10px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .pagination-info {
+        font-size: 0.85rem;
+        color: var(--gray);
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: var(--light) !important;
+    }
+
+    .pagination .page-link {
+        color: var(--dark);
+        font-size: 0.85rem;
+        padding: 6px 12px;
+    }
+
+    .search-box {
+        position: relative;
+        max-width: 300px;
+        width: 100%;
+    }
+
+    .search-box input {
+        padding-left: 36px;
+        border-radius: var(--border-radius);
+        border: 1px solid #e2e8f0;
+        font-size: 0.9rem;
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray);
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .controls-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .entries-select {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .entries-select select {
+        width: auto;
+        padding: 0.4rem 1.8rem 0.4rem 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-box {
+            max-width: 100%;
+        }
+
+        .user-table td,
+        .user-table th {
+            padding: 12px 8px;
+        }
+
+        .dashboard-footer {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+
+        .pagination {
+            justify-content: center;
+            margin-top: 10px;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .table-actions {
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .dashboard-container {
+        animation: fadeIn 0.4s ease-out forwards;
+    }
+</style>
+
+
+<div class="dashboard-container">
+
+   
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">New  Services</h2>
+        <div class="controls-wrapper">
+            <div class="entries-select">
+                <label for="entriesPerPage">Show</label>
+                <select id="entriesPerPage" class="form-select form-select-sm">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                </select>
+                <span>entries</span>
+            </div>
+            <div class="search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" id="userSearch" class="form-control" placeholder="Search users...">
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="user-table">
+    <thead>
+        <tr>
+            <th>SI. No</th>
+            <th>Service Name</th>
+            <th>Category</th>
+            <th>Gender</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for service in services %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            
+            <td>{{ service.service_name }}</td>
+            <td>{{ service.category }}</td>
+            <td>{{ service.gender_specific }}</td>
+           <td class="action-btns">
+    {% if not category.approved %}
+        <button class="btn btn-sm btn-success" onclick="approveCategory({{ category.id }})">
+            Approve
+        </button>
+    {% else %}
+        <span class="badge bg-success">Approved</span>
+    {% endif %}
+</td>
+
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="10" class="text-center">No services found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+    </div>
+    <div class="dashboard-footer">
+        <div class="pagination-info" id="paginationInfo"></div>
+        <li aria-label="User pagination">
+            <ul class="pagination" id="paginationContainer"></ul>
+        </li>
+    </div>
+</div>
+<!-- Bootstrap 5.3 JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const table = document.querySelector(".user-table tbody");
+        const rows = Array.from(table.querySelectorAll("tr"));
+        const searchInput = document.getElementById("userSearch");
+        const entriesSelect = document.getElementById("entriesPerPage");
+        const paginationInfo = document.getElementById("paginationInfo");
+        const paginationContainer = document.getElementById("paginationContainer");
+
+        let currentPage = 1;
+        let entriesPerPage = parseInt(entriesSelect.value);
+
+        function filterRows() {
+            const query = searchInput.value.toLowerCase();
+            return rows.filter(row =>
+                row.innerText.toLowerCase().includes(query)
+            );
+        }
+
+        function renderTable() {
+            const filteredRows = filterRows();
+            const totalRows = filteredRows.length;
+            const totalPages = Math.ceil(totalRows / entriesPerPage);
+            const start = (currentPage - 1) * entriesPerPage;
+            const end = start + entriesPerPage;
+
+            table.innerHTML = "";
+            filteredRows.slice(start, end).forEach(row => table.appendChild(row));
+
+            paginationInfo.textContent = `Showing ${Math.min(start + 1, totalRows)} to ${Math.min(end, totalRows)} of ${totalRows} users`;
+
+            // Pagination buttons
+            paginationContainer.innerHTML = "";
+            const prev = document.createElement("li");
+            prev.className = `page-item ${currentPage === 1 ? "disabled" : ""}`;
+            prev.innerHTML = `<a class="page-link" href="#">&laquo;</a>`;
+            prev.addEventListener("click", () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable();
+                }
+            });
+            paginationContainer.appendChild(prev);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement("li");
+                li.className = `page-item ${i === currentPage ? "active" : ""}`;
+                li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                li.addEventListener("click", () => {
+                    currentPage = i;
+                    renderTable();
+                });
+                paginationContainer.appendChild(li);
+            }
+
+            const next = document.createElement("li");
+            next.className = `page-item ${currentPage === totalPages ? "disabled" : ""}`;
+            next.innerHTML = `<a class="page-link" href="#">&raquo;</a>`;
+            next.addEventListener("click", () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable();
+                }
+            });
+            paginationContainer.appendChild(next);
+        }
+
+        // Event Listeners
+        searchInput.addEventListener("input", () => {
+            currentPage = 1;
+            renderTable();
+        });
+
+        entriesSelect.addEventListener("change", () => {
+            entriesPerPage = parseInt(entriesSelect.value);
+            currentPage = 1;
+            renderTable();
+        });
+
+        // Initial render
+        renderTable();
+    });
+</script>
+<script>
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Check if this cookie string starts with the name we want
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+
+function approveCategory(id) {
+    fetch(`/admin/approve-category/${id}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    });
+}
+</script>
+
+
+{% endblock content %}

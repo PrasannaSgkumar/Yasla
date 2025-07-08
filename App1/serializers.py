@@ -191,3 +191,27 @@ class SalonServiceAvailabilitySerializer(serializers.ModelSerializer):
         validated_data.pop('salon_id', None)
         validated_data.pop('branch_id', None)
         return super().update(instance, validated_data)
+
+
+
+
+class SalonServiceCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Salon_Service_Category
+        fields = '__all__'
+        read_only_fields = ['approved', 'approved_by', 'approved_at', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        validated_data['approved'] = False  # enforce approval False
+        return super().create(validated_data)
+
+
+class SalonServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Salon_Service
+        fields = '__all__'
+        read_only_fields = ['approved', 'approved_by', 'approved_at', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        validated_data['approved'] = False  # enforce approval False
+        return super().create(validated_data)
