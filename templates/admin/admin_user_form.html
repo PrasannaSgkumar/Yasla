@@ -1,0 +1,305 @@
+{% extends "Base/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    body {
+        background: linear-gradient(120deg, #f8fafc 60%, #f3e8ff 100%);
+        font-family: 'Poppins', Arial, sans-serif;
+    }
+
+    .card {
+        border-radius: 1.2rem;
+        box-shadow: 0 6px 32px 0 rgba(31, 38, 135, 0.10);
+        width: 100%;
+        max-width: 1300px;
+        margin: 0 auto;
+        border: none;
+    }
+
+    .form-label i {
+        color: #9333ea;
+    }
+
+    .profile-img-preview {
+        width: 100px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid #ec4899;
+        margin-bottom: 0.5rem;
+        background: #f3e8ff;
+    }
+
+    .user-btn {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 50%, #9333ea 100%);
+        color: #fff;
+        border-radius: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+        border: none;
+        box-shadow: 0 2px 8px #9333ea22;
+    }
+
+    .user-btn:hover {
+        background: linear-gradient(90deg, #db2777 0%, #7c3aed 100%);
+        color: #fff;
+    }
+
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+        font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+        letter-spacing: 1px;
+    }
+
+    .input-group-text,
+    .form-control,
+    .form-select {
+        font-size: 1rem;
+    }
+
+    .input-group .btn {
+        border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    .input-group input {
+        border-radius: 0.5rem 0 0 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 0.5rem;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #9333ea;
+        box-shadow: 0 0 0 2px #9233ea41;
+    }
+
+    label.form-label {
+        font-weight: 500;
+        letter-spacing: 0.2px;
+    }
+
+    @media (max-width: 991.98px) {
+        .card {
+            max-width: 98%;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .card {
+            max-width: 100%;
+            padding: 1rem !important;
+        }
+
+        .profile-img-preview {
+            width: 80px;
+            height: 64px;
+        }
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <div class="card p-4">
+                <h2 class="text-center mb-4 gradient-title">
+                    {% if edit_user %}Edit{% else %}Add{% endif %} User
+                </h2>
+
+                <form id="userForm" method="post" enctype="multipart/form-data"
+                    action="{% if edit_user %}{% url 'edit_admin_user' edit_user.id %}{% else %}{% url 'add_admin_user' %}{% endif %}">
+                    {% csrf_token %}
+                    <div class="row g-3">
+
+                        <!-- Full Name -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fa-solid fa-user me-2"></i>Full Name</label>
+                            <input type="text" class="form-control" name="fullName" id="fullName"
+                                placeholder="Enter full name" value="{{ edit_user.full_name|default:'' }}">
+                            <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <!-- Username -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fa-solid fa-user-circle me-2"></i>Username</label>
+                            <input type="text" class="form-control" name="username" id="username"
+                                placeholder="Enter username" value="{{ edit_user.username|default:'' }}">
+                            <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fa-solid fa-envelope me-2"></i>Email</label>
+                            <input type="email" class="form-control" name="email" id="email" placeholder="Enter email"
+                                value="{{ edit_user.email|default:'' }}">
+                            <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fa-solid fa-phone me-2"></i>Phone</label>
+                            <input type="tel" class="form-control" name="phone" id="phone"
+                                placeholder="Enter phone number" maxlength="15"
+                                value="{{ edit_user.phone|default:'' }}">
+                            <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <!-- User Role -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fa-solid fa-user-tag me-2"></i>User Role</label>
+                            <select class="form-select" id="userRole" name="userRole">
+                                <option value="" disabled selected hidden>--Select role--</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}" {% if edit_user and edit_user.role.id == role.id %} selected {% endif %}>
+                                    {{ role.role_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <!-- Password fields (only if adding) -->
+                        {% if not edit_user %}
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fa-solid fa-lock me-2"></i>Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" name="password" id="password"
+                                    placeholder="Enter password">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword"
+                                    tabindex="-1">
+                                    <i id="eyeIcon" class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="text-danger small d-none"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fa-solid fa-lock me-2"></i>Confirm Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" name="confirmPassword" id="confirmPassword"
+                                    placeholder="Confirm password">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword"
+                                    tabindex="-1">
+                                    <i id="eyeIconConfirm" class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
+                            <div id="confirmPasswordMsg" class="text-danger small d-none"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn user-btn w-100 mt-4">
+                        <i class="fa-solid fa-user-plus me-2"></i>
+                        {% if edit_user %}Update User{% else %}Add User{% endif %}
+                    </button>
+                </form>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const form = document.getElementById('userForm');
+    const fullName = document.getElementById('fullName');
+    const username = document.getElementById('username');
+    const email = document.getElementById('email');
+    const phone = document.getElementById('phone');
+    const userRole = document.getElementById('userRole');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const confirmPasswordMsg = document.getElementById('confirmPasswordMsg');
+
+    function showMessage(input, message, show) {
+        const msgDiv = input.closest('.col-md-6')?.querySelector('.text-danger');
+        if (msgDiv) {
+            msgDiv.textContent = message;
+            msgDiv.classList.toggle('d-none', !show);
+        }
+    }
+
+    function validateEmail(emailVal) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal);
+    }
+
+    function validatePhone(phoneVal) {
+        return /^\d{10,15}$/.test(phoneVal);
+    }
+
+    function validatePassword(passwordVal) {
+        return /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(passwordVal);
+    }
+
+    form.addEventListener('submit', (e) => {
+        let valid = true;
+
+        if (!fullName.value.trim()) {
+            showMessage(fullName, 'Please enter full name.', true);
+            valid = false;
+        }
+
+        if (!username.value.trim()) {
+            showMessage(username, 'Please enter username.', true);
+            valid = false;
+        }
+
+        if (!validateEmail(email.value)) {
+            showMessage(email, 'Please enter a valid email.', true);
+            valid = false;
+        }
+
+        if (!validatePhone(phone.value)) {
+            showMessage(phone, 'Please enter a valid phone number.', true);
+            valid = false;
+        }
+
+        if (!userRole.value) {
+            showMessage(userRole, 'Please select a user role.', true);
+            valid = false;
+        }
+
+        if (passwordInput && confirmPasswordInput) {
+            if (!validatePassword(passwordInput.value)) {
+                showMessage(passwordInput, 'Minimum 8 characters, include a number, special character, and letter.', true);
+                valid = false;
+            }
+
+            if (passwordInput.value !== confirmPasswordInput.value) {
+                confirmPasswordMsg.textContent = "Passwords do not match.";
+                confirmPasswordMsg.classList.remove('d-none');
+                valid = false;
+            } else {
+                confirmPasswordMsg.classList.add('d-none');
+            }
+        }
+
+        if (!valid) e.preventDefault();
+    });
+
+    // Toggle visibility
+    document.getElementById('togglePassword')?.addEventListener('click', () => {
+        passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+        document.getElementById('eyeIcon').classList.toggle('fa-eye-slash');
+    });
+
+    document.getElementById('toggleConfirmPassword')?.addEventListener('click', () => {
+        confirmPasswordInput.type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+        document.getElementById('eyeIconConfirm').classList.toggle('fa-eye-slash');
+    });
+</script>
+
+
+{% endblock content %}

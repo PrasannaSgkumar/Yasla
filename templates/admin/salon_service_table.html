@@ -1,4 +1,4 @@
-{% extends "admin/base.html" %}
+{% extends "Base/base.html" %}
 {% load static %}
 {% block content %}
 <style>
@@ -277,23 +277,22 @@
         </tr>
     </thead>
     <tbody>
-        {% for service in services %}
+    {% for service in services %}
         <tr>
             <td>{{ forloop.counter }}</td>
-            
             <td>{{ service.service_name }}</td>
             <td>{{ service.category }}</td>
             <td>{{ service.gender_specific }}</td>
-           <td class="action-btns">
-    {% if not category.approved %}
-        <button class="btn btn-sm btn-success" onclick="approveCategory({{ category.id }})">
-            Approve
-        </button>
-    {% else %}
-        <span class="badge bg-success">Approved</span>
-    {% endif %}
-</td>
-
+            <td>
+                {% if not service.approved %}
+                <form method="POST" action="{% url 'approve-category' category.id service.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-primary">Approve</button>
+                </form>
+                {% else %}
+                <span class="badge bg-success">Approved</span>
+                {% endif %}
+            </td>
         </tr>
         {% empty %}
         <tr>
@@ -396,41 +395,5 @@
         renderTable();
     });
 </script>
-<script>
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            // Check if this cookie string starts with the name we want
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-
-
-function approveCategory(id) {
-    fetch(`/admin/approve-category/${id}/`, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": getCookie("csrftoken"),
-            "Content-Type": "application/json"
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        alert(data.message);
-        location.reload();
-    });
-}
-</script>
-
 
 {% endblock content %}

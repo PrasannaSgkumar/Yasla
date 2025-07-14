@@ -1,0 +1,354 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+     <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'admin/css/message.css' %}">
+    <script src="{% static 'admin/js/message.js' %}"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        :root {
+            --gradient: linear-gradient(90deg,#f43f5e 10%,#ec4899 40%,#9333ea 100%);
+            --sidebar-bg: linear-gradient(180deg,#f8fafc 60%,#f3e8ff 100%);
+            --sidebar-active: linear-gradient(90deg,#f43f5e 0%,#ec4899 50%,#9333ea 100%);
+            --nav-hover: linear-gradient(90deg,#f43f5dad 0%,#ec489a98 50%,#9233ea9a 100%);
+            --sidebar-text: #9333ea;
+            --sidebar-hover: #fff;
+            --grey: #fefefe;
+            --light: #fff;
+            --red: #f43f5e;
+        }
+        * { font-family: 'Poppins', Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--grey); color: #333; }
+        a { text-decoration: none; }
+        li { list-style: none; }
+        #sidebar {
+            position: fixed; max-width: 220px; width: 100%;
+            background: var(--sidebar-bg); top: 0; left: 0; height: 100%;
+            overflow-y: auto; transition: all 0.3s ease;
+            z-index: 200; 
+            box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.08);
+        }
+        #sidebar.collapsed {
+            max-width: 70px;
+            min-width: 70px;
+        }
+        #sidebar.collapsed .brand {
+            font-size: 1rem;
+            padding-left: 0.5rem;
+        }
+        #sidebar.collapsed .side-menu a span {
+            display: none;
+        }
+        #sidebar .brand {
+            font-size: 1.3rem; display: flex; align-items: center; height: 64px;
+            font-weight: 800; background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+            border-radius: 0 0 1.5rem 0; padding-left: 1.5rem; margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+        #sidebar .side-menu { margin: 36px 0; padding: 0 12px; }
+        #sidebar .side-menu a {
+            display: flex; align-items: center; font-size: 1rem; color: var(--sidebar-text);
+            padding: 10px 12px; border-radius: 0.75rem; margin: 4px 0; gap: 10px; font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+        }
+        #sidebar .side-menu a.active,
+        #sidebar .side-menu a:hover {
+            background: var(--sidebar-active); color: #fff;
+        }
+        #sidebar .side-menu i { font-size: 1.2rem; }
+        #content { margin-left: 220px; transition: all .3s ease; }
+        #sidebar.collapsed ~ #content {
+            margin-left: 70px;
+        }
+        nav {
+            background: #fff; height: 64px; padding: 0 2rem; display: flex;
+            align-items: center; gap: 24px; position: sticky; top: 0; left: 0; z-index: 100;
+            box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.08);
+        }
+        .gradient-text {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+        }
+        nav .toggle-sidebar { font-size: 1.5rem; cursor: pointer; }
+        nav .nav_searchbar { max-width: 320px; width: 100%; margin-right: auto; }
+        nav .searchbar_group { position: relative; }
+        nav .searchbar_group input {
+            width: 100%; background: #f8fafc; border-radius: 50px; border: none; outline: none;
+            padding: 8px 36px 8px 16px; color: #9333ea; font-weight: 500;
+        }
+        nav .searchbar_group .icon {
+            position: absolute; top: 50%; transform: translateY(-50%); right: 16px;
+        }
+        nav .nav-link { position: relative; color: #9333ea; }
+        nav .nav-link .icon { font-size: 1.3rem; }
+        nav .nav-link .badge {
+            position: absolute; top: -8px; right: -10px; min-width: 18px; height: 18px; border-radius: 50%;
+            background: var(--red); display: flex; justify-content: center; align-items: center;
+            color: #fff; font-size: 10px; font-weight: 700; padding: 0 5px;
+        }
+        nav .divider { width: 1px; background: #eee; height: 24px; display: block; }
+        nav .profile_name { font-weight: 600; font-size: 1rem; }
+        nav .profile { position: relative; }
+        nav .profile .fa-user {
+            width: 32px; height: 32px; border-radius: 50%; background: #f3e8ff;
+            display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+            cursor: pointer;
+        }
+        nav .profile .profile-link {
+            position: absolute; top: calc(100% + 10px); right: 0; background: #fff;
+            padding: 8px 0; box-shadow: 0 4px 16px rgba(0,0,0,.08); border-radius: 10px;
+            width: 160px; opacity: 0; pointer-events: none; transition: all 0.2s;
+        }
+        nav .profile .profile-link.show { opacity: 1; pointer-events: auto; }
+        nav .profile .profile-link a {
+            padding: 8px 16px; display: flex; gap: 10px; font-size: 14px; color: #9333ea;
+            align-items: center; border-radius: 8px; transition: background 0.2s, color 0.2s;
+        }
+        nav .profile .profile-link a:hover {
+            background: var(--nav-hover); color: #fff;
+        }
+        main {
+            width: 100%; padding: 0.5rem; background: var(--grey); min-height: 100vh;
+        }
+        .notification, .inv-notification {
+            position: relative; display: inline-block; margin-right: 10px;
+        }
+        .notification-list, .inv-notification-list {
+            position: absolute; right: 0; top: 40px; background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); border-radius: 8px; width: 300px;
+            display: none; z-index: 1000; padding: 10px 0;
+        }
+        .notification-list li, .inv-notification-list li {
+            border-bottom: 1px solid #eee; padding: 2px 6px;
+        }
+        .notification-list li:last-child, .inv-notification-list li:last-child { border-bottom: none; }
+        .notification-list a, .inv-notification-list a {
+            text-decoration: none; color: #9333ea; display: block; font-size: 14px; border-radius: 6px;
+            transition: background 0.2s, color 0.2s; padding: 4px 10px;
+        }
+        .notification-list a:hover, .inv-notification-list a:hover {
+            background: var(--nav-hover); color: #fff;
+        }
+        @media (max-width: 900px) {
+            #sidebar { max-width: 60px; min-width: 60px; }
+            #content { margin-left: 60px; }
+            #sidebar .brand { font-size: 1.2rem; padding-left: 0.5rem; }
+            #sidebar .side-menu a span { display: none; }
+        }
+        @media (max-width: 600px) {
+            nav { padding: 0 0.5rem; }
+            #sidebar { display: none; }
+            #content { margin-left: 0; }
+            main { padding: 1rem 0.2rem; }
+        }
+
+        .brand-logo {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            margin-right: 10px;
+            transition: width 0.3s;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .brand-text {
+            vertical-align: middle;
+            transition: opacity 0.3s;
+        }
+        #sidebar.collapsed .brand-text {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+            display: inline-block;
+        }
+        #sidebar.collapsed .brand-logo {
+            margin-right: 0;
+        }
+    </style>
+    {% block styles %}
+
+
+    {% endblock %}
+</head>
+<body>
+    {% if messages %}
+                <div id="alert-container">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-white rounded">
+                            <div class="icon">
+                                {% if message.tags == "success" %}<i class="fa fa-check"></i>{% endif %}
+                                {% if message.tags == "error" %}<i class="fa fa-times-circle"></i>{% endif %}
+                            </div>
+                            <p><strong>{{ message.tags|capfirst }}!</strong> {{ message }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+    <!-- SIDEBAR -->
+    <section id="sidebar">
+        <div class="brand">
+            <img src="{% static 'images/logo.png' %}" alt="Logo" class="brand-logo" />
+            <span class="brand-text">Yasla</span>
+        </div>
+        <ul class="side-menu">
+            
+            {% if role_permissions.dashboard_v %}
+            <li><a href="{% url 'dashboard' %}" class="active"><i class='bx bxs-dashboard icon'></i> <span>Dashboard</span></a></li>
+            {% endif %}
+            
+            <li><a href="{% url 'roles_table' %}"><i class='bx bxs-user-rectangle icon'></i> <span>User Roles</span></a></li>
+            <li><a href="{% url 'admin_user_table' %}"><i class='fa fa-users icon'></i> <span>Users</span></a></li>
+            <li><a href="{% url 'vendors' %}"><i class='fa fa-calendar-check icon'></i> <span>Vendors</span></a></li>
+            <li><a href="{% url 'customer_table' %}"><i class='fa fa-user-injured icon'></i> <span>Clients</span></a></li>
+            <li><a href="{% url 'service_category_table' %}"><i class="fa fa-spa icon"></i> <span>Service Category</span></a></li>
+            <li><a href="{% url 'service_table' %}"><i class="fa fa-spa icon"></i> <span>Services</span></a></li>
+            <li><a href="{% url 'salon_service_category' %}"><i class="fa fa-spa icon"></i> <span>Salon Service Category</span></a></li>
+            <li><a href="#"><i class='fa fa-calendar icon'></i> <span>Schedule</span></a></li>
+            <li><a href="#"><i class='fa fa-bookmark icon'></i> <span>Booking</span></a></li>
+            <li><a href="#"><i class='fa fa-users icon'></i> <span>Staff</span></a></li>
+            <li><a href="{% url 'payment_table' %}"><i class='fa fa-credit-card icon'></i> <span>Payments</span></a></li>
+            <li><a href="#"><i class='fa fa-sliders-h icon'></i> <span>Settings</span></a></li>
+        </ul>
+    </section>
+    <!-- SIDEBAR -->
+
+    <!-- NAVBAR & CONTENT -->
+    <section id="content">
+   
+        <nav>
+            <i class='bx bx-menu toggle-sidebar gradient-text'></i>
+            <form action="#" class="nav_searchbar">
+                <div class="searchbar_group">
+                    <input type="text" name="searchbar" id="searchbar" placeholder="Search...">
+                    <i class='bx bx-search icon gradient-text'></i>
+                </div>
+            </form>
+            <div class="notification">
+                <a href="#" class="nav-link">
+                    <i class='bx bxs-bell icon gradient-text'></i>
+                    <span class="badge">2</span>
+                </a>
+                <ul class="notification-list">
+                    <li>
+                        <a href="#"><strong>New Booking</strong><br>Your appointment is confirmed.</a>
+                    </li>
+                    <li>
+                        <a href="#"><strong>Payment Received</strong><br>Invoice #1234 has been paid.</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="inv-notification">
+                <a href="#" class="nav-link">
+                    <i class='bx bxs-message-square-dots icon gradient-text'></i>
+                    <span class="badge">1</span>
+                </a>
+                <ul class="inv-notification-list">
+                    <li>
+                        <a href="#"><strong>New Inquiry</strong><br>Someone sent a message.</a>
+                    </li>
+                </ul>
+            </div>
+            <span class="divider"></span>
+            <div class="profile_name gradient-text">{{ data.full_name }}</div>
+            <div class="profile">
+                <img src="{% static 'images/avatar-04.jpg' %}" alt="Profile" class="profile-img" style="width:36px; height:36px; border-radius:50%; object-fit:cover; cursor:pointer;" >
+                <ul class="profile-link">
+                    <li><a href="#"><i class='bx bxs-user-circle icon'></i>Profile</a></li>
+                    <li><a href="#"><i class='bx bxs-cog'></i>Settings</a></li>
+                    <li><a href="#"><i class='bx bxs-log-out-circle'></i>Logout</a></li>
+                </ul>
+            </div>
+        </nav>
+        <main>
+            {% block content %}
+            
+            {% endblock %}
+        </main>
+    </section>
+
+    
+
+    <script>
+
+        // Toggle sidebar collapse
+        const sidebar = document.getElementById('sidebar');
+        const toggleSidebarBtn = document.querySelector('nav .toggle-sidebar');
+        toggleSidebarBtn.addEventListener('click', function () {
+            sidebar.classList.toggle('collapsed');
+        });
+
+        // Highlight active sidebar link
+        document.querySelectorAll('#sidebar .side-menu a').forEach(function(link) {
+            if (
+                (link.href === window.location.href || window.location.pathname === link.pathname)
+                && link.getAttribute('href') !== '#'
+            ) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        // Profile dropdown
+        const profile = document.querySelector('nav .profile');
+        const imgProfile = profile.querySelector('.profile-img');
+        const dropdownProfile = profile.querySelector('.profile-link');
+        imgProfile.addEventListener('click', function (e) {
+            e.stopPropagation();
+            dropdownProfile.classList.toggle('show');
+        });
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.profile')) {
+                dropdownProfile.classList.remove('show');
+            }
+        });
+
+        // Notification dropdowns
+        function setupDropdown(triggerSelector, dropdownSelector) {
+            const trigger = document.querySelector(triggerSelector);
+            const dropdown = document.querySelector(dropdownSelector);
+            trigger.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                document.querySelectorAll('.notification-list, .inv-notification-list').forEach(function(list) {
+                    if (list !== dropdown) list.style.display = 'none';
+                });
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            });
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest(triggerSelector)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+        setupDropdown('.notification .nav-link', '.notification-list');
+        setupDropdown('.inv-notification .nav-link', '.inv-notification-list');
+    </script>
+    {% block scripts %}
+    {% endblock %}
+</body>
+</html>

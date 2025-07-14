@@ -1,6 +1,10 @@
 {% extends "Base/base.html" %}
+
 {% load static %}
 {% block content %}
+
+<title>Salon App | Salon Table</title>
+
 <style>
     :root {
         --primary: #9333ea;
@@ -11,7 +15,15 @@
         --border-radius: 8px;
     }
 
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+        color: var(--dark);
+        /* padding: 20px; */
+    }
+
     .dashboard-container {
+        /* max-width: 1200px; */
         margin: 0 auto;
         background: white;
         border-radius: var(--border-radius);
@@ -44,14 +56,19 @@
         -webkit-overflow-scrolling: touch;
     }
 
-    .user-table {
+    .salon-table {
         width: 100%;
-        min-width: 900px;
+        min-width: 1200px;
         border-collapse: separate;
         border-spacing: 0;
     }
 
-    .user-table thead th {
+    .salon-table th,
+    .salon-table td {
+        white-space: nowrap;
+    }
+
+    .salon-table thead th {
         background-color: #f3e8ff;
         color: #9333ea;
         font-weight: bold;
@@ -59,22 +76,23 @@
         text-transform: uppercase;
         letter-spacing: 0.5px;
         padding: 12px 16px;
-        text-align: left;
+        text-align: center;
         position: sticky;
         top: 0;
         z-index: 10;
         white-space: nowrap;
     }
 
-    .user-table tbody tr {
+    .salon-table tbody tr {
         transition: background-color 0.2s ease;
+        text-align: center;
     }
 
-    .user-table tbody tr:hover {
+    .salon-table tbody tr:hover {
         background-color: #f8fafc;
     }
 
-    .user-table td {
+    .salon-table td {
         padding: 16px;
         border-bottom: 1px solid #e2e8f0;
         vertical-align: middle;
@@ -88,36 +106,12 @@
         border: 2px solid #ec4899;
     }
 
-    .status-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-
-    .status-active {
-        background-color: #dcfce7;
-        color: #166534;
-    }
-
-    .status-inactive {
-        background-color: #fef9c3;
-        color: #854d0e;
-    }
-
-    .status-blocked {
-        background-color: #fee2e2;
-        color: #991b1b;
-    }
-
     .action-btns .btn {
         margin-right: 0.25rem;
     }
 
     .dashboard-footer {
         padding: 10px 10px 0px 10px;
-        border-top: 1px solid #e2e8f0;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -198,8 +192,8 @@
             max-width: 100%;
         }
 
-        .user-table td,
-        .user-table th {
+        .salon-table td,
+        .salon-table th {
             padding: 12px 8px;
         }
 
@@ -241,16 +235,84 @@
     .dashboard-container {
         animation: fadeIn 0.4s ease-out forwards;
     }
+
+    .action-btns {
+        /* display: flex; */
+        gap: 10px;
+        vertical-align: middle;
+    }
+
+    th,
+    td {
+        vertical-align: middle;
+    }
+
+    /* Custom Modal Styles */
+    .modal-content {
+        border-radius: var(--border-radius);
+    }
+
+    .modal-header {
+        background-color: var(--primary);
+        color: white;
+        font-weight: bold;
+    }
+
+    .modal-body {
+        font-size: 0.9rem;
+        padding: 20px;
+    }
+
+    .profile-img-thumb {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #ec4899;
+    }
+
+    .profile-pic img {
+        width: 40px;
+        height: 40px;
+        border-radius: 5px;
+    }
+
+    .profil-pic-center img {
+        width: 150px;
+        height: 150px;
+        border: 50%;
+        border-radius: 50%;
+
+    }
+
+    /* Responsive modal adjustments */
+    @media (max-width: 768px) {
+        .modal-dialog {
+            max-width: 90%;
+        }
+
+        .modal-body {
+            padding: 15px;
+        }
+    }
 </style>
 
 
-<div class="dashboard-container mt-5">
+<div class="dashboard-container">
+
+    <div class="d-flex justify-content-end w-100 align-items-center">
+        <a href="{% url 'add_role' %}" class="btn btn-primary me-3 mt-2">
+            <i class="bi bi-plus-circle"></i> Add Role
+        </a>
+    </div>
     <div class="dashboard-header">
-        <h2 class="dashboard-title">Payment Transactions</h2>
+        <h2 class="dashboard-title">Roles List</h2>
+
+
         <div class="controls-wrapper">
             <div class="entries-select">
-                <label for="paymentEntries">Show</label>
-                <select id="paymentEntries" class="form-select form-select-sm">
+                <label for="entriesPerPage">Show</label>
+                <select id="entriesPerPage" class="form-select form-select-sm">
                     <option value="5">5</option>
                     <option value="10" selected>10</option>
                     <option value="25">25</option>
@@ -259,77 +321,64 @@
             </div>
             <div class="search-box">
                 <i class="bi bi-search"></i>
-                <input type="text" id="paymentSearch" class="form-control" placeholder="Search payments...">
+                <input type="text" id="salonSearch" class="form-control" placeholder="Search salons...">
             </div>
         </div>
     </div>
-
     <div class="table-responsive">
-        <table class="user-table" id="paymentTable">
+        <table class="salon-table">
             <thead>
                 <tr>
-                    <th>SI.NO</th>
-                    <th>Customer</th>
-                    <th>Payment Mode</th>
-                    <th>Status</th>
-                    <th>Amount (₹)</th>
+                    <th>Sl.No</th>
+                    <th>Role Name</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-               {% for payment in payments %}
+                {% for role in roles %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>
-                        {% if payment.customer %}
-                            {{ payment.customer.full_name }}
-                        {% else %}
-                            <span class="text-muted">N/A</span>
-                        {% endif %}
+                        <strong>
+                            <a href="{% url 'role_permissions' role.id  %}">{{ role.role_name }}</a>
+                        </strong>
                     </td>
-                    <td>{{ payment.payment_mode|default:"—" }}</td>
-                    <td>
-                        {% if payment.status == 'Paid' %}
-                            <span class="status-badge status-active">{{ payment.status }}</span>
-                        {% elif payment.status == 'Failed' %}
-                            <span class="status-badge status-blocked">{{ payment.status }}</span>
-                        {% elif payment.status == 'Refunded' %}
-                            <span class="status-badge status-inactive">{{ payment.status }}</span>
-                        {% else %}
-                            <span class="text-muted">—</span>
-                        {% endif %}
-                    </td>
-                    <td>₹{{ payment.amount|default:"0.00" }}</td>
                     <td class="action-btns">
-                        <a href="{% url 'view_payment' payment.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                        <a href="#" class="btn btn-sm btn-outline-primary" title="View Details">
                             <i class="bi bi-eye-fill"></i>
+                        </a>
+                        <a href="{% url 'edit_role' role.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <a href="{% url 'delete_role' role.id %}" class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('Are you sure you want to delete this role?');" title="Delete">
+                            <i class="bi bi-trash-fill"></i>
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center">No payment records found.</td>
+                    <td colspan="3" class="text-center">No roles found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </div>
 
+    </div>
     <div class="dashboard-footer">
-        <div class="pagination-info" id="paymentPaginationInfo"></div>
-        <li aria-label="Payment pagination">
-            <ul class="pagination" id="paymentPaginationContainer"></ul>
+        <div class="pagination-info" id="paginationInfo"></div>
+        <li aria-label="Salon pagination">
+            <ul class="pagination" id="paginationContainer"></ul>
         </li>
     </div>
 </div>
 
-<!-- Bootstrap 5.3 JS Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const table = document.querySelector(".user-table tbody");
+        const table = document.querySelector(".salon-table tbody");
         const rows = Array.from(table.querySelectorAll("tr"));
-        const searchInput = document.getElementById("userSearch");
+        const searchInput = document.getElementById("salonSearch");
         const entriesSelect = document.getElementById("entriesPerPage");
         const paginationInfo = document.getElementById("paginationInfo");
         const paginationContainer = document.getElementById("paginationContainer");
@@ -354,7 +403,7 @@
             table.innerHTML = "";
             filteredRows.slice(start, end).forEach(row => table.appendChild(row));
 
-            paginationInfo.textContent = `Showing ${Math.min(start + 1, totalRows)} to ${Math.min(end, totalRows)} of ${totalRows} users`;
+            paginationInfo.textContent = `Showing ${Math.min(start + 1, totalRows)} to ${Math.min(end, totalRows)} of ${totalRows} salons`;
 
             // Pagination buttons
             paginationContainer.innerHTML = "";
@@ -407,47 +456,9 @@
         // Initial render
         renderTable();
     });
+
+    // JavaScript to handle the click event and populate the modal with salon details
+
 </script>
 
 {% endblock content %}
-
- <tr>
-            <td>1</td>
-            <td>Darish Chinna</td>
-            <td>UPI</td>
-            <td><span class="badge bg-success">Paid</span></td>
-            <td>499.99</td>
-            <td>
-                <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></button>
-            </td>
-        </tr>
-        <tr>
-            <td>2</td>
-            <td>Bharath Kumar</td>
-            <td>Credit Card</td>
-            <td><span class="badge bg-danger">Failed</span></td>
-            <td>799.00</td>
-            <td>
-                <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></button>
-            </td>
-        </tr>
-        <tr>
-            <td>3</td>
-            <td>Rahul Kumar</td>
-            <td>Cash</td>
-            <td><span class="badge bg-warning text-dark">Refunded</span></td>
-            <td>650.50</td>
-            <td>
-                <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></button>
-            </td>
-        </tr>
-        <tr>
-            <td>4</td>
-            <td>Anjali Mehra</td>
-            <td>Net Banking</td>
-            <td><span class="badge bg-secondary">Pending</span></td>
-            <td>299.00</td>
-            <td>
-                <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></button>
-            </td>
-        </tr>

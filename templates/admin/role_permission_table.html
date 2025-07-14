@@ -1,0 +1,308 @@
+{% extends "Base/base.html" %}
+
+{% load static %}
+{% block content %}
+<style>
+    :root {
+        --primary: #9333ea;
+        --primary-light: #ec4899;
+        --dark: #1e293b;
+        --light: #f8fafc;
+        --gray: #94a3b8;
+        --border-radius: 8px;
+    }
+
+    .table-container {
+        margin: 0 auto;
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        animation: fadeIn 0.4s ease-out forwards;
+        padding: 0;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+        height: 90vh;
+    }
+
+    .table-wrapper {
+        flex: 1;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background-color: #f3e8ff;
+        color: #9333ea;
+        font-weight: bold;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 12px 16px;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        white-space: nowrap;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .table tbody tr:hover td {
+        background-color: #f8fafc;
+        cursor: pointer;
+    }
+
+    .table td {
+        padding: 10px;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .checkbox-cell input[type="checkbox"] {
+        accent-color: var(--primary);
+        width: 18px;
+        height: 18px;
+    }
+
+    .custom-label {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+        text-align: center;
+        font-weight: bold;
+        padding: 8px 0px;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        font-size: 1rem;
+        letter-spacing: 0.5px;
+    }
+
+    .secrow {
+        background-color: #f3e8ff;
+        text-align: center;
+        font-weight: bold;
+        padding: 0px 5px;
+        color: #9333ea;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    h4,
+    h5,
+    h6 {
+        margin: 0;
+        font-weight: 700;
+        color: var(--dark);
+        background: none;
+        padding-left: 0;
+        font-size: 1rem;
+    }
+
+    .main-row td {
+        background-color: #f8fafc;
+    }
+
+    @media (max-width: 992px) {
+        .table-container {
+            height: 89vh !important;
+        }
+    }
+
+    @media (width: 768px) {
+        .table-container {
+            height: 85vh !important;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .table-container {
+            height: 75vh !important;
+        }
+
+        .table {
+            min-width: 600px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px 8px;
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+
+<div class="container table-container fade-in mt-2">
+    <section class=" d-block custom-label mb-2">
+        <label class="align-middle">
+            All Rights Select/Diselect all
+            <input type="checkbox" id="select-all" class="ms-2 align-middle">
+        </label>
+    </section>
+    <form method="post">
+        {% csrf_token %}
+        <div class="secrow d-flex justify-content-between align-items-center p-3">
+            <label>Role = {{ role.role_name }}</label>
+            <button type="submit" class="btn btn-primary btn-sm ">Save Changes</button>
+        </div>
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Menu Name</th>
+                        <th>View</th>
+                        <th>Add</th>
+                        <th>Edit</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody id="form-data-table">
+                    <tr class="main-row" data-group="dashboard">
+                        <td>
+                            <h4>Dashboard</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="dashboard_v" {% if permissions.dashboard_v %}checked{% endif %}></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="roles">
+                        <td>
+                            <h4>Roles</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="roles_v" {% if permissions.roles_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="roles_a" {% if permissions.roles_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="roles_e" {% if permissions.roles_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="roles_d" {% if permissions.roles_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="users">
+                        <td>
+                            <h4>Users</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="users_v" {% if permissions.users_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="users_a" {% if permissions.users_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="users_e" {% if permissions.users_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="users_d" {% if permissions.users_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="vendors">
+                        <td>
+                            <h4>Vendors</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="vendors_v" {% if permissions.vendors_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="vendors_a" {% if permissions.vendors_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="vendors_e" {% if permissions.vendors_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="vendors_d" {% if permissions.vendors_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="clients">
+                        <td>
+                            <h4>Clients</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="clients_v" {% if permissions.clients_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="clients_a" {% if permissions.clients_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="clients_e" {% if permissions.clients_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="clients_d" {% if permissions.clients_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="category">
+                        <td>
+                            <h4>Service Category</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="category_v" {% if permissions.category_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="category_a" {% if permissions.category_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="category_e" {% if permissions.category_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="category_d" {% if permissions.category_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="services">
+                        <td>
+                            <h4>Services</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="services_v" {% if permissions.services_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="services_a" {% if permissions.services_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="services_e" {% if permissions.services_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="services_d" {% if permissions.services_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="schedule">
+                        <td>
+                            <h4>Schedule</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="schedule_v" {% if permissions.schedule_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="schedule_a" {% if permissions.schedule_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="schedule_e" {% if permissions.schedule_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="schedule_d" {% if permissions.schedule_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="payment">
+                        <td>
+                            <h4>Payment</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="payment_v" {% if permissions.payment_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="payment_a" {% if permissions.payment_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="payment_e" {% if permissions.payment_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="payment_d" {% if permissions.payment_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="bookings">
+                        <td>
+                            <h4>Bookings</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="bookings_v" {% if permissions.bookings_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="bookings_a" {% if permissions.bookings_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="bookings_e" {% if permissions.bookings_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="bookings_d" {% if permissions.bookings_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="settings">
+                        <td>
+                            <h4>Settings</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="settings_v" {% if permissions.settings_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="settings_a" {% if permissions.settings_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="settings_e" {% if permissions.settings_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="settings_d" {% if permissions.settings_d %}checked{% endif %}></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.getElementById('select-all').addEventListener('change', function () {
+        var checkboxes = document.querySelectorAll('#form-data-table input[type="checkbox"]');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+    });
+</script>
+
+{% endblock content %}

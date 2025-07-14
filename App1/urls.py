@@ -54,14 +54,13 @@ urlpatterns = [
 
     path('api/service-categories/', SalonServiceCategoryView.as_view(), name='service-category-list-create'),
     path('api/service-categories/<int:id>/', SalonServiceCategoryDetailView.as_view(), name='service-category-detail'),
-    #Super Admin Urls
-    #Super Admin Urls
+    
    
     path('register/vendor/', RegisterVendorAPIView.as_view(), name='register_vendor'),
     path('service-categories/', ServiceCategoryListView.as_view(), name='service_category_list'),
     path('api/services/', ServiceListView.as_view(), name='service_list'),
   
-     path('login', superadminlogin, name="login"),
+    path('login', adminlogin, name="login"),
     path('dashboard', superadmin_dashboard, name="dashboard"),
     
     path('vendors', saloontable, name="vendors"),
@@ -100,6 +99,17 @@ urlpatterns = [
     path('delete_category/<int:id>/', delete_category, name='delete_category'),
     path('salon_service_category', salon_service_category, name="salon_service_category"),
     path('salon_services_new/<int:id>/', salon_service_table, name="salon_services_new"),
-    path('admin/approve-category/<int:id>/', approve_service_category, name='approve-category'),
+    path('approve-category/<int:category_id>/service/<int:service_id>/', approve_service_category, name='approve-category'),
+
+    path('roles/list/', roles_table, name='roles_table'),
+    path('roles/add/', add_role, name='add_role'),
+    path('roles/edit/<int:id>/', edit_role, name='edit_role'),
+    path('roles/delete/<int:id>/', delete_role, name='delete_role'),
+    path('role_permissions/<int:role_id>/', role_permissions, name='role_permissions'),
+
+    path('admin_user/list/', admin_user_table, name='admin_user_table'),
+    path('admin_user/add/', add_admin_user, name='add_admin_user'),
+    path('admin_user/edit/<int:id>/', edit_admin_user, name='edit_admin_user'),
+    path('admin_user/delete/<int:id>/', delete_admin_user, name='delete_admin_user'),
 
 ]

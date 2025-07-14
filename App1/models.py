@@ -5,23 +5,92 @@ from django.db import models
 from django.contrib.auth.hashers import make_password
 
 from django.conf import settings
+from decimal import Decimal
 
+from django.db import models
+from django.contrib.auth.hashers import make_password
 
+class Roles(models.Model):
+    role_name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)  # ✅ use auto_now, not auto_now_add for updates
 
-class Superadmin(models.Model):
+    def __str__(self):
+        return self.role_name
+
+class RolePermissions(models.Model):  
+
+    role = models.ForeignKey(Roles, on_delete=models.CASCADE, related_name='permissions')
+
+    dashboard_v = models.BooleanField(default=False)
+
+    roles_v = models.BooleanField(default=False)
+    roles_a = models.BooleanField(default=False)
+    roles_e = models.BooleanField(default=False)
+    roles_d = models.BooleanField(default=False)
+    
+    users_v = models.BooleanField(default=False)
+    users_a = models.BooleanField(default=False)
+    users_e = models.BooleanField(default=False)
+    users_d = models.BooleanField(default=False)
+
+    vendors_v = models.BooleanField(default=False)
+    vendors_a = models.BooleanField(default=False)
+    vendors_e = models.BooleanField(default=False)
+    vendors_d = models.BooleanField(default=False)
+
+    clients_v = models.BooleanField(default=False)
+    clients_a = models.BooleanField(default=False)
+    clients_e = models.BooleanField(default=False)
+    clients_d = models.BooleanField(default=False)
+
+    category_v = models.BooleanField(default=False)
+    category_a = models.BooleanField(default=False)
+    category_e = models.BooleanField(default=False)
+    category_d = models.BooleanField(default=False)
+
+    services_v = models.BooleanField(default=False)
+    services_a = models.BooleanField(default=False)
+    services_e = models.BooleanField(default=False)
+    services_d = models.BooleanField(default=False)
+    
+    schedule_v = models.BooleanField(default=False)
+    schedule_a = models.BooleanField(default=False)
+    schedule_e = models.BooleanField(default=False)
+    schedule_d = models.BooleanField(default=False)
+
+    bookings_v = models.BooleanField(default=False)
+    bookings_a = models.BooleanField(default=False)
+    bookings_e = models.BooleanField(default=False)
+    bookings_d = models.BooleanField(default=False)
+
+    payment_v = models.BooleanField(default=False)
+    payment_a = models.BooleanField(default=False)
+    payment_e = models.BooleanField(default=False)
+    payment_d = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Permissions for {self.role.role_name}"
+
+class Admin_User(models.Model):
     full_name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
-    username=models.CharField(max_length=255, unique=True)
+    username = models.CharField(max_length=255, unique=True)
     phone = models.CharField(max_length=15, unique=True)
     password = models.CharField(max_length=255)
+    role = models.ForeignKey(Roles, on_delete=models.CASCADE, related_name='admin_users') 
+
     def __str__(self):
-        return f"{self.full_name}"
-    
+        return self.full_name
+
     def save(self, *args, **kwargs):
-   
         if self.password and not self.password.startswith('pbkdf2_'):
             self.password = make_password(self.password)
         super().save(*args, **kwargs)
+
+
+
 
 
 class Salon(models.Model):
@@ -189,7 +258,6 @@ class Service_Category(models.Model):
 
 
 
-from decimal import Decimal
 
 class Service(models.Model):
     class GenderChoices(models.TextChoices):
@@ -452,8 +520,7 @@ class Salon_Service(models.Model):
         MALE = 'Male', 'Male'
         FEMALE = 'Female', 'Female'
         UNISEX = 'Unisex', 'Unisex'
-  # Service_ID
-   
+        
     service_name = models.CharField(max_length=255)
     category = models.ForeignKey(Salon_Service_Category, on_delete=models.CASCADE, null=True, blank=True)
     description = models.TextField()

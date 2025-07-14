@@ -114,26 +114,26 @@
 <div class="container py-5">
     <div class="card p-4">
         <h3 class="text-center mb-4 gradient-title">
-            {% if edit_service %}Edit{% else %}Add{% endif %} Service
+            {% if edit_service %}Edit{% else %}Add{% endif %} Role
         </h3>
 
-        <form method="post" enctype="multipart/form-data" id="serviceForm"
-              action="{% if edit_service %}{% url 'edit_service' edit_service.id %}{% else %}{% url 'add_category' %}{% endif %}">
-         
+        <form method="post" enctype="multipart/form-data" id="RoleForm"
+              action="{% if edit_role %}{% url 'edit_role' edit_role.id %}{% else %}{% url 'add_role' %}{% endif %}">
+
             {% csrf_token %}
 
             <div class="row g-3">
 
                 <div class="col-md-4">
-                    <label class="form-label"><i class="fa-solid fa-scissors me-2"></i>Service Category Name</label>
-                    <input type="text" class="form-control" name="service_name" value="{{ edit_service.service_name|default:'' }}" placeholder="Enter service name">
-                    <div class="text-danger d-none">Please enter service name.</div>
+                    <label class="form-label"><i class="fa-solid fa-scissors me-2"></i>Role Name</label>
+                    <input type="text" class="form-control" name="role_name" value="{{ edit_role.role_name|default:'' }}" placeholder="Enter role name">
+                    <div class="text-danger d-none">Please enter role name.</div>
                 </div>
 
 
                 <div class="col-md-12">
                     <label class="form-label"><i class="fa-solid fa-align-left me-2"></i>Description</label>
-                    <textarea class="form-control" name="description" rows="3" placeholder="Enter description">{{ edit_service.description|default:'' }}</textarea>
+                    <textarea class="form-control" name="description" rows="3" placeholder="Enter description">{{ edit_role.description|default:'' }}</textarea>
                     <div class="text-danger d-none">Please enter description.</div>
                 </div>
 
@@ -142,18 +142,18 @@
 
             <button type="submit" class="btn user-btn w-100 mt-4">
                 <i class="fa-solid fa-floppy-disk me-2"></i>
-                {% if edit_service %}Update Service{% else %}Add Service{% endif %}
+                {% if edit_role %}Update Role{% else %}Add Role{% endif %}
             </button>
         </form>
     </div>
 </div>
 
 <script>
-    const serviceForm = document.getElementById("serviceForm");
-    const fields = [ "service_name", "description" ];
+    const roleForm = document.getElementById("RoleForm");
+    const fields = [ "role_name", "description" ];
 
     function showError(field, msg) {
-        const input = serviceForm.elements[field];
+        const input = roleForm.elements[field];
         const error = input?.closest('.col-md-6, .col-md-4, .col-md-12')?.querySelector('.text-danger');
         if (input && error) {
             error.textContent = msg;
@@ -162,18 +162,18 @@
     }
 
     function hideError(field) {
-        const input = serviceForm.elements[field];
+        const input = roleForm.elements[field];
         const error = input?.closest('.col-md-6, .col-md-4, .col-md-12')?.querySelector('.text-danger');
         if (input && error) {
             error.classList.add("d-none");
         }
     }
 
-    serviceForm.addEventListener("submit", function (e) {
+    roleForm.addEventListener("submit", function (e) {
         let isValid = true;
 
         fields.forEach(field => {
-            const input = serviceForm.elements[field];
+            const input = roleForm.elements[field];
             const value = input?.value?.trim();
 
             if (!value) {

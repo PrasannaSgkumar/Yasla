@@ -22,12 +22,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
-
-
-
 
 
 
@@ -1178,13 +1175,13 @@ class SalonServiceDetailView(APIView):
 
 
 
-def superadminlogin(request):
+def adminlogin(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
 
         try:
-            user = Superadmin.objects.get(username=username)
+            user = Admin_User.objects.get(username=username)
             if check_password(password, user.password):
                 request.session['superadmin_username'] = username
                 messages.success(request, 'Login successful!')
@@ -1193,25 +1190,39 @@ def superadminlogin(request):
                 print("invalid id or pass")
                 messages.error(request, 'Invalid username or password')
                 return render(request, 'admin/admin_login.html')
-        except Superadmin.DoesNotExist:
+        except Admin_User.DoesNotExist:
             print("does not exist")
             messages.error(request, 'Invalid username or password')
             return render(request, 'admin/admin_login.html')
 
     return render(request, 'admin/admin_login.html')
 
-def superadmin_dashboard(request):
-    username = request.session.get('superadmin_username')
-    if not username:
-        return redirect('login')
+
+def get_logged_in_user(request):
+    
+    user_session = request.session.get('superadmin_username')
+    if not user_session:
+        return None, None
 
     try:
-        user = Superadmin.objects.get(username=username)
-    except Superadmin.DoesNotExist:
+        user = Admin_User.objects.get(username=user_session)
+        try:
+            role_permission = RolePermissions.objects.get(role=user.role)
+        except RolePermissions.DoesNotExist:
+            role_permission = None
+        return user, role_permission
+    except Admin_User.DoesNotExist:
+        return None, None
+
+def superadmin_dashboard(request):
+
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     context = {
-        'user': user,
+        'data': data,
+        'role_permissions': role_permissions,
         'total_vendors': Salon.objects.count(),
         'total_salons': SalonBranch.objects.count(),
         'total_stylists': User.objects.filter(user_role='Stylist').count(),
@@ -1223,25 +1234,23 @@ def superadmin_dashboard(request):
     return render(request, 'admin/dashboard.html', context)
     
 def saloontable(request):
-    user=request.session.get('superadmin_username')
-    
-    if not user:
-        
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
-    else:
-        user=Superadmin.objects.get(username=user)
-        saloon=Salon.objects.all()
-        context={
-            'user':user,
-            'saloon':saloon
-        }
-        return render(request, 'admin/salon_table.html', context)
+    saloon = Salon.objects.all()
+    context = {
+        'data': data,
+        'role_permission': role_permissions,
+        'saloon': saloon
+    }
+    return render(request, 'admin/salon_table.html', context)
 
 
 
 def add_saloon(request):
-    user = request.session.get('superadmin_username')
-    if not user:
+
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     if request.method == 'POST':
@@ -1308,12 +1317,12 @@ def add_saloon(request):
         messages.success(request, "Vendor added successfully.")
         return redirect('vendors')
 
-    return render(request, 'admin/salon_form.html')
+    return render(request, 'admin/salon_form.html', {'data': data, 'role_permissions': role_permissions})
 
 
 def delete_vendor(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     try:
@@ -1329,8 +1338,8 @@ def delete_vendor(request, id):
 
 
 def view_vendor(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     try:
@@ -1346,14 +1355,16 @@ def view_vendor(request, id):
         'vendor': vendor,
         'salon_branches': salon_branches,
         'users': users,
+        'data': data,
+        'role_permissions': role_permissions
     })
 
 
 
 
 def add_branch(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     try:
@@ -1411,13 +1422,13 @@ def add_branch(request, id):
         messages.success(request, "Branch added successfully!")
         return redirect('view_salon', id=salon.id)
 
-    return render(request, 'admin/salon_branch_form.html', {'salon': salon})
+    return render(request, 'admin/salon_branch_form.html', {'salon': salon, 'data': data, 'role_permissions': role_permissions})
 
 
 
 def edit_branch(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     branch = get_object_or_404(SalonBranch, id=id)
@@ -1474,13 +1485,15 @@ def edit_branch(request, id):
 
     return render(request, 'admin/salon_branch_form.html', {
         'branch': branch,
-        'salon': branch.salon
+        'salon': branch.salon,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 
 def delete_branch(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     try:
@@ -1497,8 +1510,8 @@ def delete_branch(request, id):
 
 
 def view_branch(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     try:
@@ -1510,11 +1523,13 @@ def view_branch(request, id):
 
     return render(request, 'admin/salon_branch_details.html', {
         'branch': branch,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 def add_user(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     salon = get_object_or_404(Salon, id=id)
@@ -1523,6 +1538,8 @@ def add_user(request, id):
     context={
         'salon': salon,
         'branches': branches,
+        'data':data,
+        'role_permissions': role_permissions
     }
 
     if request.method == 'POST':
@@ -1567,8 +1584,8 @@ def add_user(request, id):
     return render(request, 'admin/user_form.html', context)
 
 def edit_user(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     edit_user = get_object_or_404(User, id=id)
@@ -1579,6 +1596,8 @@ def edit_user(request, id):
         'edit_user': edit_user,
         'salon': salon,
         'branches': branches,
+        'data':data,
+        'role_permissions': role_permissions
     }
 
     if request.method == 'POST':
@@ -1618,9 +1637,10 @@ def edit_user(request, id):
 
 
 def delete_user(request, id):
-    user = request.session.get('superadmin_username')
-    if not user:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
+    
     try:
         user = User.objects.get(id=id)
         if user:
@@ -1635,8 +1655,8 @@ def delete_user(request, id):
 
 
 def view_user(request, id):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     try:
@@ -1647,18 +1667,20 @@ def view_user(request, id):
 
     return render(request, 'admin/user_details.html', {
         'user': user,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 
 def customer_table(request):
 
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     customers = Customer.objects.all()
 
-    return render(request, 'admin/customer_table.html',{'customers':customers})
+    return render(request, 'admin/customer_table.html',{'customers':customers, 'data':data, 'role_permissions': role_permissions})
 
 # def add_customer(request):
 
@@ -1759,8 +1781,8 @@ def customer_table(request):
 #     return redirect('customer_table')     
 
 def view_customer(request, id):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     try:
@@ -1771,34 +1793,36 @@ def view_customer(request, id):
 
     return render(request, 'admin/customer_details.html', {
         'customer': customer,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 def payment_table(request):
 
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     payments = Payment.objects.all()
 
-    return render(request, 'admin/payment_table.html', {'payments': payments})
+    return render(request, 'admin/payment_table.html', {'payments': payments, 'data':data, 'role_permissions': role_permissions})
 
 
 def service_table(request):
 
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     services = Service.objects.all()
 
-    return render(request, 'admin/service_table.html', {'services': services})
+    return render(request, 'admin/service_table.html', {'services': services,'data':data, 'role_permissions': role_permissions})
 
 
 
 def view_payment(request, id):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     try:
@@ -1809,12 +1833,16 @@ def view_payment(request, id):
 
     return render(request, 'admin/payment_details.html', {
         'payment': payment,
+        'data':data,
+        'role_permissions': role_permissions
     })
-def add_service(request):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
-        return redirect('login')
 
+
+def add_service(request):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+    
     categories = Service_Category.objects.all()
 
     if request.method == 'POST':
@@ -1829,10 +1857,9 @@ def add_service(request):
                 'category': categories,
                 'service_name': service_name,
                 'description': description,
-                'gender_specific': gender_specific
+                'gender_specific': gender_specific,
             })
 
-        # Get the category instance
         category = Service_Category.objects.filter(id=category_id).first()
 
         service = Service(
@@ -1846,13 +1873,15 @@ def add_service(request):
         return redirect('service_table')
 
     return render(request, 'admin/service_form.html', {
-        'category': categories
+        'category': categories,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 
 def edit_service(request, id):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     edit_service = get_object_or_404(Service, id=id)
@@ -1871,13 +1900,15 @@ def edit_service(request, id):
 
     return render(request, 'admin/service_form.html', {
         'edit_service': edit_service,
-        'category': categories
+        'category': categories,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 
 def delete_service(request, id):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     service = get_object_or_404(Service, id=id)
@@ -1887,8 +1918,8 @@ def delete_service(request, id):
 
 
 def view_service(request, id):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
     try:
@@ -1899,6 +1930,8 @@ def view_service(request, id):
 
     return render(request, 'admin/service_details.html', {
         'service': service,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 
@@ -1920,13 +1953,15 @@ class RegisterVendorAPIView(APIView):
 
 
 def service_category_table(request):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     categories = Service_Category.objects.all()
     return render(request, 'admin/service_category.html', {
         'categories': categories,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 
@@ -1936,17 +1971,14 @@ from django.contrib import messages
 from .models import Service_Category
 
 def add_category(request):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     if request.method == 'POST':
         service_name = request.POST.get('service_name', '').strip()
         description = request.POST.get('description', '').strip()
 
-        if not service_name:
-            messages.error(request, "Service name is required.")
-            return redirect('service_category_table')
 
         if Service_Category.objects.filter(service_category_name=service_name).exists():
             messages.error(request, "Service Category name already exists.")
@@ -1957,14 +1989,14 @@ def add_category(request):
             service_category_description=description
         )
         messages.success(request, "Service Category added successfully.")
-        return redirect('service_category_table')  # or redirect to list view
+        return redirect('service_category_table')  
 
-    return render(request, 'admin/service_category_form.html')
+    return render(request, 'admin/service_category_form.html',{'data':data, 'role_permissions': role_permissions})
 
 
 def edit_category(request, service_id):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     service = get_object_or_404(Service_Category, id=service_id)
@@ -1977,7 +2009,6 @@ def edit_category(request, service_id):
             messages.error(request, "Service name is required.")
             return redirect('service_category_table')
 
-        # Check for duplicate only if name changed
         if Service_Category.objects.exclude(id=service_id).filter(service_category_name=service_name).exists():
             messages.error(request, "Another service Category with this name already exists.")
             return redirect('service_category_table')
@@ -1989,13 +2020,15 @@ def edit_category(request, service_id):
         return redirect('service_category_table')
 
     return render(request, 'admin/service_category_form.html', {
-        'edit_service': service
+        'edit_service': service,
+        'data':data,
+        'role_permissions': role_permissions
     })
 
 
 def delete_category(request, service_id):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     service = get_object_or_404(Service_Category, id=service_id)
@@ -2006,74 +2039,258 @@ def delete_category(request, service_id):
 
 
 def salon_service_category(request):
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
     
     categories = Salon_Service_Category.objects.all()
 
-    return render(request, 'admin/salon_service_category.html', {'categories': categories})
+    return render(request, 'admin/salon_service_category.html', {'categories': categories, 'data':data, 'role_permissions': role_permissions})
 
 
 
 def salon_service_table(request, id):
-
-    user_session = request.session.get('superadmin_username')
-    if not user_session:
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
         return redirect('login')
 
-    services = Salon_Service.objects.filter(category=id)
+    category = get_object_or_404(Salon_Service_Category, id=id)
+    services = Salon_Service.objects.filter(category=category)
 
-    return render(request, 'admin/salon_service_table.html', {'services': services})
+    return render(request, 'admin/salon_service_table.html', {
+        'services': services,
+        'category': category,
+        'data':data,
+        'role_permissions': role_permissions
+    })
 
 
+def approve_service_category(request, category_id, service_id):
 
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
 
-
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from .models import (
-    Salon_Service, Salon_Service_Category,
-    Service, Service_Category
-)
-
-@csrf_exempt
-
-def approve_service_category(request, id):
     if request.method == "POST":
         try:
-            # Step 1: Get the unapproved category
-            salon_category = Salon_Service_Category.objects.get(id=id)
+            salon_category = get_object_or_404(Salon_Service_Category, id=category_id)
+            service_to_approve = get_object_or_404(Salon_Service, id=service_id, category=salon_category, approved=False)
 
-            if salon_category.approved:
-                return JsonResponse({"status": "info", "message": "Category already approved."})
-
-            # Step 2: Create a new Service_Category
-            main_category = Service_Category.objects.create(
+            main_category, created = Service_Category.objects.get_or_create(
                 service_category_name=salon_category.service_category_name,
-                service_category_description=salon_category.service_category_description
+                defaults={'service_category_description': salon_category.service_category_description}
             )
 
-            # Step 3: Get all services linked to this category
-            related_services = Salon_Service.objects.filter(category=salon_category, approved=False)
+            Service.objects.create(
+                service_name=service_to_approve.service_name,
+                category=main_category,
+                description=service_to_approve.description,
+                gender_specific=service_to_approve.gender_specific
+            )
 
-            for s in related_services:
-                Service.objects.create(
-                    service_name=s.service_name,
-                    category=main_category,
-                    description=s.description,
-                    gender_specific=s.gender_specific
-                )
-                s.approved = True
-                s.save()
+            service_to_approve.approved = True
+            service_to_approve.approved_by = data.full_name
+            service_to_approve.save()
 
-            # Step 4: Mark the salon category as approved
-            salon_category.approved = True
-            salon_category.save()
+            if not Salon_Service.objects.filter(category=salon_category, approved=False).exists():
+                salon_category.approved = True
+                salon_category.approved_by = data.full_name
+                salon_category.save()
 
-            return JsonResponse({"status": "success", "message": "Category and linked services approved and created."})
+            messages.success(request, f"Service '{service_to_approve.service_name}' approved.")
+            return redirect('salon_services_new', id=category_id)
 
-        except Salon_Service_Category.DoesNotExist:
-            return JsonResponse({"status": "error", "message": "Category not found."}, status=404)
         except Exception as e:
-            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+            messages.error(request, f"Error: {str(e)}")
+            return redirect('salon_services_new', id=category_id)
+        
+    return render(request, 'admin/salon_service_table.html', {'data':data, 'role_permissions': role_permissions})    
+
+
+
+def roles_table(request):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+
+    roles = Roles.objects.all()
+    return render(request, 'admin/roles_table.html', {'roles':roles,'data':data, 'role_permissions': role_permissions})
+
+def add_role(request):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+    
+    if request.method == 'POST':
+        role_name = request.POST.get('role_name', '').strip()
+        description = request.POST.get('description', '').strip()
+
+        if Roles.objects.filter(role_name=role_name).exists():
+            messages.error(request, "This Role already exists.")
+            return redirect('roles_table')
+
+        role = Roles.objects.create(
+            role_name=role_name,
+            description=description
+        )
+
+        RolePermissions.objects.create(
+            role=role,
+            dashboard_v=True,
+            vendors_v=True,
+            clients_v=True,
+            category_v=True,
+            services_v=True,
+            schedule_v=True,
+            bookings_v=True,
+            payment_v=True
+        )
+
+        messages.success(request, "Role and default permissions added successfully.")
+        return redirect('roles_table')
+
+    return render(request, 'admin/roles_form.html',{'data':data, 'role_permissions': role_permissions})
+
+def edit_role(request, id):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+    role = get_object_or_404(Roles, id=id)
+
+    if request.method == 'POST':
+        role_name = request.POST.get('role_name', '').strip()
+        description = request.POST.get('description', '').strip()
+
+        if Roles.objects.exclude(id=role.id).filter(role_name=role_name).exists():
+            messages.error(request, "Another role with this name already exists.")
+            return redirect('roles_table')
+
+        role.role_name = role_name
+        role.description = description
+        role.save()
+
+        messages.success(request, "Role updated successfully.")
+        return redirect('roles_table')
+
+    return render(request, 'admin/roles_form.html', {'edit_role': role, 'data':data, 'role_permissions': role_permissions})
+
+def delete_role(request, id):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+
+    role = get_object_or_404(Roles, id=id)
+    role.delete()
+
+    messages.success(request, "Role deleted successfully.")
+    return redirect('roles_table')
+
+
+def role_permissions(request, role_id):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+
+    role = get_object_or_404(Roles, id=role_id)
+    permissions, create = RolePermissions.objects.get_or_create(role=role)
+
+    if request.method == 'POST':
+
+        for field in RolePermissions._meta.get_fields():
+            if field.name not in ['id', 'role']:
+                setattr(permissions, field.name, field.name in request.POST)
+
+        permissions.save()
+        messages.success(request, "Permissions updated successfully.")
+        return redirect('role_permissions', role_id)
+
+    return render(request, 'admin/role_permission_table.html', {
+        'role': role,
+        'permissions': permissions,
+        'data':data,
+        'role_permissions': role_permissions
+    })
+
+
+def admin_user_table(request):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+
+    admin_users = Admin_User.objects.all()
+    return render(request, 'admin/admin_user_table.html', {'admin_users': admin_users,'data':data, 'role_permissions': role_permissions})
+
+def add_admin_user(request):  
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+        
+    if request.method == 'POST':
+        full_name = request.POST.get('fullName')
+        email = request.POST.get('email')
+        username = request.POST.get('username')
+        phone = request.POST.get('phone')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirmPassword')
+        role_id = request.POST.get('userRole')
+
+        if Admin_User.objects.filter(email=email).exists():
+            messages.error(request, "Email already exists.")
+            return redirect(request.META.get('HTTP_REFERER'))
+
+        if Admin_User.objects.filter(phone=phone).exists():
+            messages.error(request, "Phone number already exists.")
+            return redirect(request.META.get('HTTP_REFERER'))
+
+        if Admin_User.objects.filter(username=username).exists():
+            messages.error(request, "Username already exists.")
+            return redirect(request.META.get('HTTP_REFERER'))
+
+        role = get_object_or_404(Roles, id=role_id)
+
+        Admin_User.objects.create(
+            full_name=full_name,
+            email=email,
+            username=username,
+            phone=phone,
+            password=password,
+            role=role
+        )
+        messages.success(request, "User added successfully.")
+        return redirect('admin_user_table') 
+
+    roles = Roles.objects.all()
+    return render(request, 'admin/admin_user_form.html', {'roles': roles,'data':data, 'role_permissions': role_permissions})
+
+def edit_admin_user(request, id):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+    edit_user = get_object_or_404(Admin_User, id=id)
+
+    if request.method == 'POST':
+        edit_user.full_name = request.POST.get('fullName')
+        edit_user.email = request.POST.get('email')
+        edit_user.username = request.POST.get('username')
+        edit_user.phone = request.POST.get('phone')
+
+        role_id = request.POST.get('userRole')
+        edit_user.role = get_object_or_404(Roles, id=role_id)
+
+        edit_user.save()
+        messages.success(request, "User updated successfully.")
+        return redirect('admin_user_table')
+
+    roles = Roles.objects.all()
+    return render(request, 'admin/admin_user_form.html', {'edit_user': edit_user, 'roles': roles,'data':data,'role_permissions': role_permissions})
+
+
+def delete_admin_user(request, id):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+    
+    user = get_object_or_404(Admin_User, id=id)
+    user.delete()
+    messages.success(request, "User deleted successfully.")
+    return redirect('admin_user_table')
