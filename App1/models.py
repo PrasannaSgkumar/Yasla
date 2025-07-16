@@ -187,8 +187,6 @@ class User(models.Model):
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15, unique=True)
     password = models.CharField(max_length=255)
-    
-    # 👇 Using choices here
     user_role = models.CharField(
         max_length=50,
         choices=UserRole.choices,
@@ -201,7 +199,7 @@ class User(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    branches = models.ManyToManyField(SalonBranch, related_name='users',  null=True, blank=True)
+    branches = models.ManyToManyField(SalonBranch, related_name='users', blank=True)
     
 
     def __str__(self):
@@ -269,6 +267,7 @@ class Service(models.Model):
     service_name = models.CharField(max_length=255)
     category = models.ForeignKey(Service_Category, on_delete=models.CASCADE, null=True, blank=True)
     description = models.TextField()
+    popular=models.BooleanField(default=False)
     gender_specific = models.CharField(
         max_length=50,
         choices=GenderChoices.choices,
@@ -284,21 +283,42 @@ class Service(models.Model):
 
 
 
+from datetime import timedelta
+from django.db import models, transaction
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+
+
 class Appointment(models.Model):
+    # Foreign Keys
+    salon   = models.ForeignKey('Salon', on_delete=models.SET_NULL, null=True, blank=True)
+    branch  = models.ForeignKey('SalonBranch', on_delete=models.SET_NULL, null=True, blank=True)
+    stylist = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True)
+    customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Appointment Timing
+    start_datetime = models.DateTimeField(null=True, blank=True)
+    end_datetime   = models.DateTimeField(null=True, blank=True)
+
+
+
+    # Status & Payment Info
     class BookingStatusChoices(models.TextChoices):
         PENDING = 'Pending', 'Pending'
         CONFIRMED = 'Confirmed', 'Confirmed'
         COMPLETED = 'Completed', 'Completed'
         CANCELLED = 'Cancelled', 'Cancelled'
 
-    class BookingTypeChoices(models.TextChoices):
-        ONLINE = 'Online', 'Online'
-        OFFLINE = 'Offline', 'Offline'
+    status = models.CharField(max_length=20, choices=BookingStatusChoices.choices,
+                              default=BookingStatusChoices.PENDING)
 
     class PaymentStatusChoices(models.TextChoices):
         PAID = 'Paid', 'Paid'
         UNPAID = 'Unpaid', 'Unpaid'
         PARTIALLY_PAID = 'Partially Paid', 'Partially Paid'
+
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices.choices,
+                                      blank=True, null=True)
 
     class PaymentModeChoices(models.TextChoices):
         UPI = 'UPI', 'UPI'
@@ -306,67 +326,62 @@ class Appointment(models.Model):
         WALLET = 'Wallet', 'Wallet'
         CASH = 'Cash at Salon', 'Cash at Salon'
 
-    class BookingSourceChoices(models.TextChoices):
-        APP = 'App', 'App'
-        WALKIN = 'Walk-in', 'Walk-in'
-  
+    payment_mode = models.CharField(max_length=20, choices=PaymentModeChoices.choices,
+                                    blank=True, null=True)
 
-    salon = models.ForeignKey('Salon', on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
-    customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
-    branch = models.ForeignKey('SalonBranch', on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
-    stylist = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments_as_stylist')
+    bill_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
-    booking_date = models.DateField(null=True, blank=True)
-    time_slot = models.CharField(max_length=20, null=True, blank=True)
+    # Misc
+    customer_message = models.TextField(blank=True, null=True)
+    staff_notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True,blank=True, null=True )
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
-    status = models.CharField(
-        max_length=50,
-        choices=BookingStatusChoices.choices,
-        default=BookingStatusChoices.PENDING,
-        null=True,
-        blank=True
-    )
-    booking_type = models.CharField(
-        max_length=20,
-        choices=BookingTypeChoices.choices,
-        null=True,
-        blank=True
-    )
-    bill_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    # Auto-calculate end_datetime and check for conflicts
+    def calculate_total_duration(self) -> timedelta:
+        """
+        Sum of all related service durations.
+        If duration is not set, default to 30 minutes (or raise error if preferred).
+        """
+        total_minutes = 0
+        for item in self.appointment_services.all():
+            if item.duration_min is not None:
+                total_minutes += item.duration_min
+            else:
+                total_minutes += 30  # default fallback
+        return timedelta(minutes=total_minutes)
 
-    payment_status = models.CharField(
-        max_length=50,
-        choices=PaymentStatusChoices.choices,
-        null=True,
-        blank=True
-    )
-    payment_mode = models.CharField(
-        max_length=50,
-        choices=PaymentModeChoices.choices,
-        null=True,
-        blank=True
-    )
-    invoice_id = models.CharField(max_length=100, null=True, blank=True)
+    def clean(self):
+        if not self.start_datetime or not self.stylist:
+            return
 
-    booking_source = models.CharField(
-        max_length=50,
-        choices=BookingSourceChoices.choices,
-        null=True,
-        blank=True
-    )
+        total_duration = self.calculate_total_duration()
+        prospective_end = self.start_datetime + total_duration
 
-    assigned_by = models.CharField(max_length=255, null=True, blank=True)
-    customer_message = models.TextField(null=True, blank=True)
-    staff_notes = models.TextField(null=True, blank=True)
+        # Check for overlap with other appointments
+        overlap_exists = Appointment.objects.filter(
+            stylist=self.stylist,
+            start_datetime__lt=prospective_end,
+            end_datetime__gt=self.start_datetime,
+            status__in=[
+                self.BookingStatusChoices.PENDING,
+                self.BookingStatusChoices.CONFIRMED,
+            ]
+        ).exclude(id=self.id).exists()
 
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+        if overlap_exists:
+            raise ValidationError("Stylist is already booked during this time.")
 
-    cancellation_reason = models.TextField(null=True, blank=True)
-    cancelled_by = models.CharField(max_length=255, null=True, blank=True)
+    def save(self, *args, **kwargs):
+        if self.start_datetime:
+            self.end_datetime = self.start_datetime + self.calculate_total_duration()
+
+        with transaction.atomic():
+            self.full_clean()
+            super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Appointment - {self.id}"
+        return f"Appointment #{self.id} with {self.stylist}"
 
 
 

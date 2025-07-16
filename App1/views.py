@@ -637,19 +637,43 @@ class AppointmentView(APIView):
 
 
     def post(self, request):
-        serializer = AppointmentSerializer(data=request.data)
+        data = request.data.copy()
+        services = data.pop("services", [])  # expect a list of service IDs with optional durations
+
+        serializer = AppointmentSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
+            appointment = serializer.save()
+
+            # Create AppointmentService records
+            for service in services:
+                if isinstance(service, dict):
+                    service_id = service.get("id")
+                    duration_min = service.get("duration_min")
+                else:
+                    service_id = service
+                    duration_min = None
+
+                AppointmentService.objects.create(
+                    appointment=appointment,
+                    service_id=service_id,
+                    duration_min=duration_min
+                )
+
+            # Save again to trigger end_datetime calculation
+            appointment.save()
+
             return Response({
                 "status": "success",
                 "message": "Appointment created successfully",
-                "data": serializer.data
+                "data": AppointmentSerializer(appointment).data
             }, status=status.HTTP_201_CREATED)
+
         return Response({
             "status": "error",
-            "message": "Appointment creation failed",
+            "message": "Validation failed",
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -665,27 +689,52 @@ class AppointmentDetailView(APIView):
 
     def put(self, request, id):
         appointment = get_object_or_404(Appointment, id=id)
-        serializer = AppointmentSerializer(appointment, data=request.data, partial=True)
+        data = request.data.copy()
+        services = data.pop("services", [])
+
+        serializer = AppointmentSerializer(appointment, data=data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            updated_appointment = serializer.save()
+
+            # Update services
+            updated_appointment.appointment_services.all().delete()
+            for service in services:
+                if isinstance(service, dict):
+                    service_id = service.get("id")
+                    duration_min = service.get("duration_min")
+                else:
+                    service_id = service
+                    duration_min = None
+
+                AppointmentService.objects.create(
+                    appointment=updated_appointment,
+                    service_id=service_id,
+                    duration_min=duration_min
+                )
+
+            updated_appointment.save()
+
             return Response({
                 "status": "success",
                 "message": "Appointment updated successfully",
-                "data": serializer.data
+                "data": AppointmentSerializer(updated_appointment).data
             })
+
         return Response({
             "status": "error",
-            "message": "Invalid data",
+            "message": "Validation failed",
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, id):
-        appointment = get_object_or_404(Appointment, id=id)
-        appointment.delete()
-        return Response({
-            "status": "success",
-            "message": "Appointment deleted successfully"
-        }, status=status.HTTP_200_OK)
+
+
+        def delete(self, request, id):
+            appointment = get_object_or_404(Appointment, id=id)
+            appointment.delete()
+            return Response({
+                "status": "success",
+                "message": "Appointment deleted successfully"
+            }, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -1850,6 +1899,8 @@ def add_service(request):
         category_id = request.POST.get('category')
         description = request.POST.get('description')
         gender_specific = request.POST.get('gender_specific')
+        popular = request.POST.get('is_popular') == 'on'
+
 
         if Service.objects.filter(service_name=service_name).exists():
             messages.error(request, "Service name already exists.")
@@ -1866,7 +1917,8 @@ def add_service(request):
             service_name=service_name,
             category=category,
             description=description,
-            gender_specific=gender_specific
+            gender_specific=gender_specific,
+            popular=popular
         )
         service.save()
         messages.success(request, "Service added successfully.")
