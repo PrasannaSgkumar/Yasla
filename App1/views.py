@@ -1945,6 +1945,7 @@ def edit_service(request, id):
         edit_service.category = Service_Category.objects.filter(id=category_id).first()
         edit_service.description = request.POST.get('description')
         edit_service.gender_specific = request.POST.get('gender_specific')
+        edit_service.popular = request.POST.get('is_popular') == 'on'
 
         edit_service.save()
         messages.success(request, "Service updated successfully.")
