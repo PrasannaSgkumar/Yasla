@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from jsonschema import ValidationError
 from rest_framework.response import Response
@@ -25,6 +26,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.utils.dateparse import parse_datetime
 
 
 
@@ -638,41 +640,76 @@ class AppointmentView(APIView):
 
     def post(self, request):
         data = request.data.copy()
-        services = data.pop("services", [])  # expect a list of service IDs with optional durations
+        services_data = data.pop("appointment_services", [])
+        stylist_id = data.get('stylist')
+        start_datetime = parse_datetime(data.get('start_datetime'))
+      
+        
+        # Validate required keys
+        if not services_data:
+            return Response({"error": "appointment_services is required."}, status=status.HTTP_400_BAD_REQUEST)
+        overlapping_appointments = Appointment.objects.filter(
+            stylist_id=stylist_id,
+            start_datetime=start_datetime
+            
+        )
 
-        serializer = AppointmentSerializer(data=data)
-        if serializer.is_valid():
-            appointment = serializer.save()
-
-            # Create AppointmentService records
-            for service in services:
-                if isinstance(service, dict):
-                    service_id = service.get("id")
-                    duration_min = service.get("duration_min")
-                else:
-                    service_id = service
-                    duration_min = None
-
-                AppointmentService.objects.create(
-                    appointment=appointment,
-                    service_id=service_id,
-                    duration_min=duration_min
-                )
-
-            # Save again to trigger end_datetime calculation
-            appointment.save()
-
+        if overlapping_appointments.exists():
             return Response({
-                "status": "success",
-                "message": "Appointment created successfully",
-                "data": AppointmentSerializer(appointment).data
-            }, status=status.HTTP_201_CREATED)
+                "error": "Stylist already has an appointment during this time."
+            }, status=status.HTTP_409_CONFLICT)
+        try:
+            # Parse start time
+            start_datetime = parse_datetime(data.get("start_datetime"))
+            if not start_datetime:
+                return Response({"error": "Invalid or missing start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({
-            "status": "error",
-            "message": "Validation failed",
-            "errors": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+            # Calculate total cost and duration
+            total_cost = 0
+            total_duration = timedelta()
+
+            for service_obj in services_data:
+                service_id = service_obj.get("service")
+                if not service_id:
+                    return Response({"error": "Missing service ID in appointment_services."}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Check for branch or salon
+                branch = data.get("branch")
+                salon = data.get("salon")
+                if branch:
+                    availability = SalonServiceAvailability.objects.filter(branch=branch, service=service_id).first()
+                else:
+                    availability = SalonServiceAvailability.objects.filter(salon=salon, service=service_id).first()
+
+                if not availability:
+                    return Response({"error": f"Service ID {service_id} is not available in the selected salon/branch."},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+                total_cost += availability.cost
+                total_duration += availability.completion_time
+
+            # Set computed values
+            data["bill_amount"] = total_cost
+            data["end_datetime"] = start_datetime + total_duration
+
+            # Serialize and save
+            serializer = AppointmentSerializer(data=data)
+            if serializer.is_valid():
+                appointment = serializer.save()
+
+                # Save appointment services
+                for service_obj in services_data:
+                    AppointmentService.objects.create(
+                        appointment=appointment,
+                        service_id=service_obj["service"]
+                    )
+
+                return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
@@ -728,13 +765,13 @@ class AppointmentDetailView(APIView):
 
 
 
-        def delete(self, request, id):
-            appointment = get_object_or_404(Appointment, id=id)
-            appointment.delete()
-            return Response({
-                "status": "success",
-                "message": "Appointment deleted successfully"
-            }, status=status.HTTP_200_OK)
+    def delete(self, request, id):
+        appointment = get_object_or_404(Appointment, id=id)
+        appointment.delete()
+        return Response({
+            "status": "success",
+            "message": "Appointment deleted successfully"
+        }, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name='dispatch')

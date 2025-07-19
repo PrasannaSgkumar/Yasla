@@ -337,51 +337,25 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True,blank=True, null=True )
     updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
 
-    # Auto-calculate end_datetime and check for conflicts
-    def calculate_total_duration(self) -> timedelta:
-        """
-        Sum of all related service durations.
-        If duration is not set, default to 30 minutes (or raise error if preferred).
-        """
-        total_minutes = 0
-        for item in self.appointment_services.all():
-            if item.duration_min is not None:
-                total_minutes += item.duration_min
-            else:
-                total_minutes += 30  # default fallback
-        return timedelta(minutes=total_minutes)
+    def __str__(self):
+        return self.id
+    
 
-    def clean(self):
-        if not self.start_datetime or not self.stylist:
-            return
 
-        total_duration = self.calculate_total_duration()
-        prospective_end = self.start_datetime + total_duration
 
-        # Check for overlap with other appointments
-        overlap_exists = Appointment.objects.filter(
-            stylist=self.stylist,
-            start_datetime__lt=prospective_end,
-            end_datetime__gt=self.start_datetime,
-            status__in=[
-                self.BookingStatusChoices.PENDING,
-                self.BookingStatusChoices.CONFIRMED,
-            ]
-        ).exclude(id=self.id).exists()
-
-        if overlap_exists:
-            raise ValidationError("Stylist is already booked during this time.")
-
-    def save(self, *args, **kwargs):
-        if self.start_datetime:
-            self.end_datetime = self.start_datetime + self.calculate_total_duration()
-
-        with transaction.atomic():
-            self.full_clean()
-            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Appointment #{self.id} with {self.stylist}"
+
+class AppointmentService(models.Model):
+    appointment = models.ForeignKey('Appointment', on_delete=models.CASCADE, related_name='appointment_services')
+    service = models.ForeignKey('Service', on_delete=models.CASCADE)
+    
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Store final price
+    duration_min = models.PositiveIntegerField(null=True, blank=True)  # Optional: override estimated time
+
+    def __str__(self):
+        return f"{self.service.service_name} for {self.appointment.id}"
 
 
 
@@ -431,15 +405,7 @@ class SalonServiceAvailability(models.Model):
 
 
 
-class AppointmentService(models.Model):
-    appointment = models.ForeignKey('Appointment', on_delete=models.CASCADE, related_name='appointment_services')
-    service = models.ForeignKey('Service', on_delete=models.CASCADE)
-    
-    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Store final price
-    duration_min = models.PositiveIntegerField(null=True, blank=True)  # Optional: override estimated time
 
-    def __str__(self):
-        return f"{self.service.service_name} for {self.appointment.id}"
     
 
 
