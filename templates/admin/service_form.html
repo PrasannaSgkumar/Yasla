@@ -67,11 +67,6 @@
     .input-group .btn {
         border-radius: 0 0.5rem 0.5rem 0;
     }
-    .form-check-label {
-    font-weight: 500;
-    font-size: 1rem;
-}
-
 
     .input-group input {
         border-radius: 0.5rem 0 0 0.5rem;
@@ -169,16 +164,6 @@
 
                 
             </div>
-            <div class="col-md-4 d-flex align-items-end">
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="is_popular" id="popularCheck"
-            {% if edit_service and edit_service.popular %}checked{% endif %}>
-        <label class="form-check-label" for="popularCheck">
-            <i class="fa-solid fa-star me-1 text-warning"></i> Mark as Popular
-        </label>
-    </div>
-</div>
-
 
             <button type="submit" class="btn user-btn w-100 mt-4">
                 <i class="fa-solid fa-floppy-disk me-2"></i>

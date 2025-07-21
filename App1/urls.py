@@ -3,8 +3,7 @@ from .views import *
 
 urlpatterns = [
 
-    # Salon URLs
-    path('salons/', SalonView.as_view(), name='salon-list-create'),
+   path('salons/', SalonView.as_view(), name='salon-list-create'),
     path('salons/<int:id>/', SalonDetailView.as_view(), name='salon-detail'),
 
     # Salon Branch URLs
@@ -62,9 +61,9 @@ urlpatterns = [
   
     path('login', adminlogin, name="login"),
     path('dashboard', superadmin_dashboard, name="dashboard"),
-    
-    path('vendors', saloontable, name="vendors"),
-    path('vendor/add', add_saloon, name="add_saloon"),
+    path('vendors/list/', salon_table, name="vendors_table"),
+    path('vendor/add', add_salon, name="add_salon"),
+    path('salon/edit/<int:id>/', edit_salon, name='edit_salon'),
     path('salon/delete/<int:id>/', delete_vendor, name="delete_salon"),
     path('salon/view/<int:id>/', view_vendor, name="view_salon"),
 
@@ -92,12 +91,13 @@ urlpatterns = [
     path('service/edit/<int:id>/', edit_service, name='edit_service'),
     path('service/delete/<int:id>/', delete_service, name='delete_service'),
     path('service/view/<int:id>/', view_service, name='view_service'),
-    path('service/category', service_category_table, name="service_category_table"),
+
+    path('service/category/list/', service_category_table, name="service_category_table"),
     path('add_category/',add_category, name='add_category'),
-   
     path('edit_category/<int:id>/', edit_category, name='edit_category'),
     path('delete_category/<int:id>/', delete_category, name='delete_category'),
-    path('salon_service_category', salon_service_category, name="salon_service_category"),
+
+    path('salon_service_category/', salon_service_category, name="salon_service_category"),
     path('salon_services_new/<int:id>/', salon_service_table, name="salon_services_new"),
     path('approve-category/<int:category_id>/service/<int:service_id>/', approve_service_category, name='approve-category'),
 
@@ -111,5 +111,9 @@ urlpatterns = [
     path('admin_user/add/', add_admin_user, name='add_admin_user'),
     path('admin_user/edit/<int:id>/', edit_admin_user, name='edit_admin_user'),
     path('admin_user/delete/<int:id>/', delete_admin_user, name='delete_admin_user'),
+
+    path('bookings/list/', booking_table, name='booking_table'),
+    path('schedule/list/', schedule_table, name='schedule_table'),
+    path('booking/view/<int:id>/', view_appointment, name='view_appointment'),
 
 ]

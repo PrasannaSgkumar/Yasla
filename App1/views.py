@@ -1273,11 +1273,9 @@ def adminlogin(request):
                 messages.success(request, 'Login successful!')
                 return redirect('dashboard')
             else:
-                print("invalid id or pass")
                 messages.error(request, 'Invalid username or password')
                 return render(request, 'admin/admin_login.html')
         except Admin_User.DoesNotExist:
-            print("does not exist")
             messages.error(request, 'Invalid username or password')
             return render(request, 'admin/admin_login.html')
 
@@ -1285,7 +1283,7 @@ def adminlogin(request):
 
 
 def get_logged_in_user(request):
-    
+
     user_session = request.session.get('superadmin_username')
     if not user_session:
         return None, None
@@ -1295,7 +1293,7 @@ def get_logged_in_user(request):
         try:
             role_permission = RolePermissions.objects.get(role=user.role)
         except RolePermissions.DoesNotExist:
-            role_permission = None
+            role_permission = None   
         return user, role_permission
     except Admin_User.DoesNotExist:
         return None, None
@@ -1319,21 +1317,21 @@ def superadmin_dashboard(request):
 
     return render(request, 'admin/dashboard.html', context)
     
-def saloontable(request):
+def salon_table(request):
     data, role_permissions = get_logged_in_user(request)
     if not data:
         return redirect('login')
     saloon = Salon.objects.all()
     context = {
         'data': data,
-        'role_permission': role_permissions,
+        'role_permissions': role_permissions,
         'saloon': saloon
     }
     return render(request, 'admin/salon_table.html', context)
 
 
 
-def add_saloon(request):
+def add_salon(request):
 
     data, role_permissions = get_logged_in_user(request)
     if not data:
@@ -1401,9 +1399,104 @@ def add_saloon(request):
         )
 
         messages.success(request, "Vendor added successfully.")
-        return redirect('vendors')
+        return redirect('vendors_table')
 
     return render(request, 'admin/salon_form.html', {'data': data, 'role_permissions': role_permissions})
+
+def edit_salon(request, id):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+
+    salon = get_object_or_404(Salon, id=id)
+
+    if request.method == 'POST':
+        salon_name = request.POST.get('salonName')
+        vendor_name = request.POST.get('vendorName')
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        alternate_phone = request.POST.get('alternatePhone')
+        vendor_type = request.POST.get('vendorType')
+        salon_category = request.POST.get('salonCategory')
+        business_registration = request.POST.get('businessRegistration')
+        gstin = request.POST.get('gstin')
+        opening_time = request.POST.get('openingTime')
+        closing_time = request.POST.get('closingTime')
+        street_address = request.POST.get('streetAddress')
+        locality = request.POST.get('locality')
+        city = request.POST.get('city')
+        state = request.POST.get('state')
+        pincode = request.POST.get('pincode')
+        country = request.POST.get('country')
+        latitude = request.POST.get('latitude') or None
+        longitude = request.POST.get('longitude') or None
+        profile_image = request.FILES.get('profileImage')
+
+        if Salon.objects.filter(email=email).exclude(id=salon.id).exists():
+            messages.error(request, "Email already exists.")
+            return render(request, 'admin/salon_form.html', {
+                'edit_salon': salon,
+                'data': data,
+                'role_permissions': role_permissions,
+            })
+
+        if Salon.objects.filter(phone=phone).exclude(id=salon.id).exists():
+            messages.error(request, "Phone number already exists.")
+            return render(request, 'admin/salon_form.html', {
+                'edit_salon': salon,
+                'data': data,
+                'role_permissions': role_permissions,
+            })
+
+        if business_registration and Salon.objects.filter(business_registration=business_registration).exclude(id=salon.id).exists():
+            messages.error(request, "Business Registration number already exists.")
+            return render(request, 'admin/salon_form.html', {
+                'edit_salon': salon,
+                'data': data,
+                'role_permissions': role_permissions,
+            })
+
+        if gstin and Salon.objects.filter(gstin=gstin).exclude(id=salon.id).exists():
+            messages.error(request, "GSTIN already exists.")
+            return render(request, 'admin/salon_form.html', {
+                'edit_salon': salon,
+                'data': data,
+                'role_permissions': role_permissions,
+            })
+
+        salon.salon_name = salon_name
+        salon.vendor_name = vendor_name
+        salon.email = email
+        salon.phone = phone
+        salon.alternate_phone = alternate_phone
+        salon.vendor_type = vendor_type
+        salon.salon_category = salon_category
+        salon.business_registration = business_registration
+        salon.gstin = gstin
+        salon.opening_time = opening_time
+        salon.closing_time = closing_time
+        salon.street_address = street_address
+        salon.locality = locality
+        salon.city = city
+        salon.state = state
+        salon.pincode = pincode
+        salon.country = country
+        salon.latitude = latitude
+        salon.longitude = longitude
+
+        if profile_image:
+            salon.profile_image = profile_image
+
+        salon.save()
+
+        messages.success(request, "Salon updated successfully.")
+        return redirect('vendors_table')
+
+    return render(request, 'admin/salon_form.html', {
+        'edit_salon': salon,
+        'data': data,
+        'role_permissions': role_permissions
+    })
 
 
 def delete_vendor(request, id):
@@ -1420,7 +1513,7 @@ def delete_vendor(request, id):
             messages.error(request, "Vendor not found.")
     except Salon.DoesNotExist:
         messages.error(request, "Vendor not found.")
-    return redirect('vendors')
+    return redirect('vendors_table')
 
 
 def view_vendor(request, id):
@@ -1432,7 +1525,7 @@ def view_vendor(request, id):
         vendor = Salon.objects.get(id=id)
     except Salon.DoesNotExist:
         messages.error(request, "Vendor not found.")
-        return redirect('vendors')
+        return redirect('vendors_table')
 
     salon_branches = SalonBranch.objects.filter(salon_id=id)
     users = User.objects.filter(salon_id=id)
@@ -1667,7 +1760,7 @@ def add_user(request, id):
         except ValidationError as e:
             messages.error(request, e.message)
 
-    return render(request, 'admin/user_form.html', context)
+    return render(request, 'admin/staff_form.html', context)
 
 def edit_user(request, id):
     data, role_permissions = get_logged_in_user(request)
@@ -1719,7 +1812,7 @@ def edit_user(request, id):
         except ValidationError as e:
             messages.error(request, e.message)
 
-    return render(request, 'admin/user_form.html', context)
+    return render(request, 'admin/staff_form.html', context)
 
 
 def delete_user(request, id):
@@ -1751,7 +1844,7 @@ def view_user(request, id):
         messages.error(request, "User not found.")
         return redirect('dashboard')  # or redirect to a user list
 
-    return render(request, 'admin/user_details.html', {
+    return render(request, 'admin/staff_details.html', {
         'user': user,
         'data':data,
         'role_permissions': role_permissions
@@ -1936,8 +2029,6 @@ def add_service(request):
         category_id = request.POST.get('category')
         description = request.POST.get('description')
         gender_specific = request.POST.get('gender_specific')
-        popular = request.POST.get('is_popular') == 'on'
-
 
         if Service.objects.filter(service_name=service_name).exists():
             messages.error(request, "Service name already exists.")
@@ -1954,8 +2045,7 @@ def add_service(request):
             service_name=service_name,
             category=category,
             description=description,
-            gender_specific=gender_specific,
-            popular=popular
+            gender_specific=gender_specific
         )
         service.save()
         messages.success(request, "Service added successfully.")
@@ -1982,7 +2072,6 @@ def edit_service(request, id):
         edit_service.category = Service_Category.objects.filter(id=category_id).first()
         edit_service.description = request.POST.get('description')
         edit_service.gender_specific = request.POST.get('gender_specific')
-        edit_service.popular = request.POST.get('is_popular') == 'on'
 
         edit_service.save()
         messages.success(request, "Service updated successfully.")
@@ -2056,10 +2145,6 @@ def service_category_table(request):
 
 
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from .models import Service_Category
-
 def add_category(request):
     data, role_permissions = get_logged_in_user(request)
     if not data:
@@ -2084,12 +2169,12 @@ def add_category(request):
     return render(request, 'admin/service_category_form.html',{'data':data, 'role_permissions': role_permissions})
 
 
-def edit_category(request, service_id):
+def edit_category(request, id):
     data, role_permissions = get_logged_in_user(request)
     if not data:
         return redirect('login')
     
-    service = get_object_or_404(Service_Category, id=service_id)
+    service = get_object_or_404(Service_Category, id=id)
 
     if request.method == 'POST':
         service_name = request.POST.get('service_name', '').strip()
@@ -2099,7 +2184,7 @@ def edit_category(request, service_id):
             messages.error(request, "Service name is required.")
             return redirect('service_category_table')
 
-        if Service_Category.objects.exclude(id=service_id).filter(service_category_name=service_name).exists():
+        if Service_Category.objects.exclude(id=id).filter(service_category_name=service_name).exists():
             messages.error(request, "Another service Category with this name already exists.")
             return redirect('service_category_table')
 
@@ -2116,12 +2201,12 @@ def edit_category(request, service_id):
     })
 
 
-def delete_category(request, service_id):
+def delete_category(request, id):
     data, role_permissions = get_logged_in_user(request)
     if not data:
         return redirect('login')
     
-    service = get_object_or_404(Service_Category, id=service_id)
+    service = get_object_or_404(Service_Category, id=id)
     service.delete()
     messages.success(request, "Service Category deleted successfully.")
     return redirect('service_category_table')
@@ -2384,3 +2469,41 @@ def delete_admin_user(request, id):
     user.delete()
     messages.success(request, "User deleted successfully.")
     return redirect('admin_user_table')
+
+def booking_table(request):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+
+    bookings = Appointment.objects.filter(status=Appointment.BookingStatusChoices.PENDING)
+
+    return render(request, 'admin/booking_table.html', {'data':data, 'role_permissions': role_permissions, 'bookings': bookings})
+
+
+
+def schedule_table(request):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+
+    schedules = Appointment.objects.exclude(status=Appointment.BookingStatusChoices.PENDING)
+
+    return render(request, 'admin/schedule_table.html', {'data':data, 'role_permissions': role_permissions, 'schedules': schedules})
+
+
+def view_appointment(request, id):
+    data, role_permissions = get_logged_in_user(request)
+    if not data:
+        return redirect('login')
+
+    try:
+        appointment = Appointment.objects.get(id=id)
+    except Appointment.DoesNotExist:
+        messages.error(request, "Booking not found.")
+        return redirect('booking_table')
+
+    return render(request, 'admin/appointment_details.html', {
+        'appointment': appointment,
+        'data':data,
+        'role_permissions': role_permissions
+    })

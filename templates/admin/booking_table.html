@@ -244,20 +244,13 @@
 </style>
 
 
-<div class="dashboard-container">
-    {% if role_permissions.category_a %}
-    <div class="d-flex justify-content-end w-100 align-items-center">
-        <a href="{% url 'add_category' %}" class="btn btn-primary me-4 mt-3">
-            <i class="bi bi-plus-circle"></i> Add Service
-        </a>
-    </div>
-    {% endif %}
+<div class="dashboard-container mt-5">
     <div class="dashboard-header">
-        <h2 class="dashboard-title">Salon Services</h2>
+        <h2 class="dashboard-title">Booking Appointments</h2>
         <div class="controls-wrapper">
             <div class="entries-select">
-                <label for="entriesPerPage">Show</label>
-                <select id="entriesPerPage" class="form-select form-select-sm">
+                <label for="paymentEntries">Show</label>
+                <select id="paymentEntries" class="form-select form-select-sm">
                     <option value="5">5</option>
                     <option value="10" selected>10</option>
                     <option value="25">25</option>
@@ -266,65 +259,61 @@
             </div>
             <div class="search-box">
                 <i class="bi bi-search"></i>
-                <input type="text" id="userSearch" class="form-control" placeholder="Search users...">
+                <input type="text" id="paymentSearch" class="form-control" placeholder="Search payments...">
             </div>
         </div>
     </div>
+
     <div class="table-responsive">
-        <table class="user-table">
-    <thead>
-        <tr>
-            <th>SI. No</th>
-            <th>Category Name</th>
-            <th>Description</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for service in categories %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-             <td>{{ service.service_category_name }}</td>
-            
-            <td>{{ service.service_category_description }}</td>
-            
-           
-            <td class="action-btns">
-                {% comment %} <a href="{% url 'view_service' service.id %}" class="btn btn-sm btn-outline-primary" title="View">
-                    <i class="bi bi-eye-fill"></i>
-                </a> {% endcomment %}
-
-                {% if role_permissions.category_e %}
-                <a href="{% url 'edit_category' service.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
-                    <i class="bi bi-pencil-fill"></i>
-                </a>
-                {% endif %}
-
-                {% if role_permissions.category_d %}
-                <a href="{% url 'delete_category' service.id %}" class="btn btn-sm btn-outline-danger"
-                   onclick="return confirm('Are you sure you want to delete this service?');"
-                   title="Delete">
-                    <i class="bi bi-trash-fill"></i>
-                </a>
-                {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="10" class="text-center">No services found.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
+        <table class="user-table" id="bookingTable">
+            <thead>
+                <tr>
+                    <th>SL No</th>
+                    <th>Customer</th>
+                    <th>Salon</th>
+                    <th>Branch</th>
+                    <th>Stylist</th>
+                    <th>Booking Date</th>
+                    <th>Time Slot</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ booking.customer }}</td>
+                    <td>{{ booking.salon }}</td>
+                    <td>{{ booking.branch }}</td>
+                    <td>{{ booking.stylist }}</td>
+                    <td>{{ booking.booking_date }}</td>
+                    <td>{{ booking.time_slot }}</td>
+                    <td>{{ booking.status }}</td>
+                    <td class="action-btns">
+                        <a href="{% url 'view_appointment' booking.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                            <i class="bi bi-eye-fill"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No pending bookings found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+
+
     <div class="dashboard-footer">
-        <div class="pagination-info" id="paginationInfo"></div>
-        <li aria-label="User pagination">
-            <ul class="pagination" id="paginationContainer"></ul>
+        <div class="pagination-info" id="paymentPaginationInfo"></div>
+        <li aria-label="Payment pagination">
+            <ul class="pagination" id="paymentPaginationContainer"></ul>
         </li>
     </div>
 </div>
+
 <!-- Bootstrap 5.3 JS Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>

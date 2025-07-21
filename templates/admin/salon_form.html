@@ -101,12 +101,17 @@
         }
     </style>
 
+
+
+
     <div class="container py-3">
         <div class="row justify-content-center">
             <div class="col-12">
                 <div class="card p-4">
-                    <h2 class="text-center mb-4 gradient-title">Salon Registration</h2>
-                    <form id="salonForm" enctype="multipart/form-data" method="post">
+                    <h2 class="text-center mb-4 gradient-title">{% if edit_salon %}Edit{% else %}Add{% endif %} Salon</h2>
+                    <form id="salonForm" enctype="multipart/form-data" method="post"
+                              action="{% if edit_salon %}{% url 'edit_salon' edit_salon.id %}{% else %}{% url 'add_saloon' %}{% endif %}">
+
                         {% csrf_token %}
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -115,7 +120,7 @@
                                     Salon Name
                                 </label>
                                 <input type="text" class="form-control" id="salonName" name="salonName"
-                                    placeholder="Enter salon name">
+                                    value="{{ edit_salon.salon_name|default:'' }}" placeholder="Enter salon name">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -124,7 +129,7 @@
                                     Vendor Name
                                 </label>
                                 <input type="text" class="form-control" id="vendorName" name="vendorName"
-                                    placeholder="Owner/Manager name">
+                                    value="{{ edit_salon.vendor_name|default:'' }}" placeholder="Owner/Manager name">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -133,7 +138,7 @@
                                     Email
                                 </label>
                                 <input type="email" class="form-control" id="email" name="email"
-                                    placeholder="Contact email">
+                                    value="{{ edit_salon.email|default:'' }}" placeholder="Contact email">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -142,7 +147,7 @@
                                     Phone
                                 </label>
                                 <input type="tel" class="form-control" id="phone" name="phone"
-                                    placeholder="Primary contact number" maxlength="15">
+                                    value="{{ edit_salon.phone|default:'' }}" placeholder="Primary contact number" maxlength="15">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -151,7 +156,7 @@
                                     Alternate Phone
                                 </label>
                                 <input type="tel" class="form-control" id="alternatePhone" name="alternatePhone"
-                                    placeholder="Secondary contact number">
+                                    value="{{ edit_salon.alternate_phone|default:'' }}" placeholder="Secondary contact number">
                             </div>
                             <div class="col-md-4">
                                 <label for="vendorType" class="form-label">
@@ -160,10 +165,10 @@
                                 </label>
                                 <select class="form-select" id="vendorType" name="vendorType">
                                     <option value="">Select type</option>
-                                    <option>Individual</option>
-                                    <option>Franchise</option>
-                                    <option>Company</option>
-                                    <option>Other</option>
+                                    <option {% if edit_salon and edit_salon.vendor_type == 'Individual' %}selected{% endif %}>Individual</option>
+                                    <option {% if edit_salon and edit_salon.vendor_type == 'Franchise' %}selected{% endif %}>Franchise</option>
+                                    <option {% if edit_salon and edit_salon.vendor_type == 'Company' %}selected{% endif %}>Company</option>
+                                    <option {% if edit_salon and edit_salon.vendor_type == 'Other' %}selected{% endif %}>Other</option>
                                 </select>
                                 <div class="text-danger small d-none"></div>
                             </div>
@@ -174,9 +179,9 @@
                                 </label>
                                 <select class="form-select" id="salonCategory" name="salonCategory">
                                     <option value="">Select category</option>
-                                    <option>Men</option>
-                                    <option>Women</option>
-                                    <option>Unisex</option>
+                                    <option {% if edit_salon and edit_salon.salon_category == 'Men' %}selected{% endif %}>Men</option>
+                                    <option {% if edit_salon and edit_salon.salon_category == 'Women' %}selected{% endif %}>Women</option>
+                                    <option {% if edit_salon and edit_salon.salon_category == 'Unisex' %}selected{% endif %}>Unisex</option>
                                 </select>
                                 <div class="text-danger small d-none"></div>
                             </div>
@@ -185,8 +190,9 @@
                                     <i class="fa-solid fa-id-card me-2"></i>
                                     Business Registration
                                 </label>
-                                <input type="text" class="form-control" id="businessRegistration"
-                                    name="businessRegistration" placeholder="Business registration number">
+                                <input type="text" class="form-control" id="businessRegistration" name="businessRegistration" 
+                                    value="{{ edit_salon.business_registration|default:'' }}" placeholder="Business registration number">
+                                    <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
                                 <label for="gstin" class="form-label">
@@ -194,23 +200,26 @@
                                     GSTIN
                                 </label>
                                 <input type="text" class="form-control" id="gstin" name="gstin"
-                                    placeholder="GST Identification Number">
+                                    value="{{ edit_salon.gstin|default:'' }}" placeholder="GST Identification Number">
+                                    <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
                                 <label for="openingTime" class="form-label">
                                     <i class="fa-solid fa-clock me-2"></i>
                                     Opening Time
                                 </label>
-                                <input type="time" class="form-control" id="openingTime" name="openingTime">
-                                <div class="text-danger small d-none"></div>
+                                <input type="time" class="form-control" id="openingTime" name="openingTime"
+                                     value="{{ edit_salon.opening_time|time:'H:i' }}">
+                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
                                 <label for="closingTime" class="form-label">
                                     <i class="fa-regular fa-clock me-2"></i>
                                     Closing Time
                                 </label>
-                                <input type="time" class="form-control" id="closingTime" name="closingTime">
-                                <div class="text-danger small d-none"></div>
+                                <input type="time" class="form-control" id="closingTime" name="closingTime" 
+                                    value="{{ edit_salon.closing_time|time:'H:i' }}">
+                                    <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
                                 <label for="streetAddress" class="form-label">
@@ -218,7 +227,7 @@
                                     Street Address
                                 </label>
                                 <input type="text" class="form-control" id="streetAddress" name="streetAddress"
-                                    placeholder="Street details">
+                                    value="{{ edit_salon.street_address|default:'' }}" placeholder="Street details">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -227,7 +236,7 @@
                                     Locality
                                 </label>
                                 <input type="text" class="form-control" id="locality" name="locality"
-                                    placeholder="Area or neighborhood">
+                                    value="{{ edit_salon.locality|default:'' }}" placeholder="Area or neighborhood">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -235,7 +244,8 @@
                                     <i class="fa-solid fa-city me-2"></i>
                                     City
                                 </label>
-                                <input type="text" class="form-control" id="city" name="city" placeholder="City name">
+                                <input type="text" class="form-control" id="city" name="city" 
+                                    value="{{ edit_salon.city|default:'' }}" placeholder="City name">
                                 <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -244,7 +254,7 @@
                                     State
                                 </label>
                                 <input type="text" class="form-control" id="state" name="state"
-                                    placeholder="State or province">
+                                    value="{{ edit_salon.state|default:'' }}" placeholder="State or province">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -253,7 +263,7 @@
                                     Pincode
                                 </label>
                                 <input type="text" class="form-control" id="pincode" name="pincode"
-                                    placeholder="Postal code" maxlength="10">
+                                    value="{{ edit_salon.pincode|default:'' }}" placeholder="Postal code" maxlength="10">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -262,7 +272,7 @@
                                     Country
                                 </label>
                                 <input type="text" class="form-control" id="country" name="country"
-                                    placeholder="Country">
+                                    value="{{ edit_salon.country|default:'' }}" placeholder="Country">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -270,8 +280,8 @@
                                     <i class="fa-solid fa-location-arrow me-2"></i>
                                     Latitude
                                 </label>
-                                <input type="text"  class="form-control" id="latitude" name="latitude"
-                                    placeholder="Latitude">
+                                <input type="text" class="form-control" id="latitude" name="latitude"
+                                    value="{{ edit_salon.latitude|default_if_none:'' }}" placeholder="Latitude">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
@@ -279,20 +289,24 @@
                                     <i class="fa-solid fa-location-arrow me-2"></i>
                                     Longitude
                                 </label>
-                                <input type="text" class="form-control" id="longitude"
-                                    name="longitude" placeholder="Longitude">
+                                <input type="text" class="form-control" id="longitude" name="longitude" 
+                                    value="{{ edit_salon.longitude|default_if_none:'' }}" placeholder="Longitude">
                                     <div class="text-danger small d-none"></div>
                             </div>
                             <div class="col-md-4">
                                 <label for="profileImage" class="form-label">
-                                    <i class="fa-solid fa-image me-2"></i>
-                                    Profile Image / Logo
+                                    <i class="fa-solid fa-image me-2"></i>Profile Image / Logo
                                 </label>
-                                <input type="file" class="form-control" id="profileImage" name="profileImage"
-                                    accept="image/*">
+                                <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*">
+                                
                                 <div class="text-start mt-2">
+                                    {% if edit_salon and edit_salon.profile_image %}
+                                    <img src="{{ edit_salon.profile_image.url }}" class="profile-img-preview"  alt="Current Image">
+                                    {% else %}
                                     <img id="profilePreview" class="profile-img-preview d-none" alt="Profile Preview">
+                                    {% endif %}
                                 </div>
+                                
                             </div>
                             <!-- Salon Gallery Section -->
                             <div class="col-md-4">
@@ -307,9 +321,13 @@
                             </div>
                         </div>
                         <button type="submit" class="btn user-btn w-100 mt-4">
-                            <i class="fa-solid fa-plus me-2"></i>
-                            Add Salon
+                            {% if edit_salon %}
+                                <i class="fa-solid fa-save me-2"></i> Update Salon
+                            {% else %}
+                                <i class="fa-solid fa-plus me-2"></i> Add Salon
+                            {% endif %}
                         </button>
+
                     </form>
                 </div>
             </div>
@@ -346,7 +364,10 @@
             salonGallery.value = '';
         });
 
-        {% comment %} function renderGallery() {
+    </script>
+
+    <!-- <script>
+        function renderGallery() {
             galleryPreview.innerHTML = '';
             galleryFiles.forEach((file, idx) => {
                 const wrapper = document.createElement('div');
@@ -378,9 +399,7 @@
                 galleryPreview.appendChild(wrapper);
             });
         }
-
-        {% endcomment %}
-    </script>
+    </script> -->
 
   <script>
         document.addEventListener('DOMContentLoaded', function () {

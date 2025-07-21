@@ -153,18 +153,6 @@
         .notification-list a:hover, .inv-notification-list a:hover {
             background: var(--nav-hover); color: #fff;
         }
-        @media (max-width: 900px) {
-            #sidebar { max-width: 60px; min-width: 60px; }
-            #content { margin-left: 60px; }
-            #sidebar .brand { font-size: 1.2rem; padding-left: 0.5rem; }
-            #sidebar .side-menu a span { display: none; }
-        }
-        @media (max-width: 600px) {
-            nav { padding: 0 0.5rem; }
-            #sidebar { display: none; }
-            #content { margin-left: 0; }
-            main { padding: 1rem 0.2rem; }
-        }
 
         .brand-logo {
             width: 50px;
@@ -188,6 +176,42 @@
         #sidebar.collapsed .brand-logo {
             margin-right: 0;
         }
+
+        @media (max-width: 900px) {
+            #sidebar {
+                display: none;
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 220px;
+                height: 100vh;
+                z-index: 1000;
+                background: var(--sidebar-bg);
+                box-shadow: 0 0 0 100vw rgba(0,0,0,0.3);
+                transition: transform 0.3s;
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                display: block;
+                transform: translateX(0);
+            }
+            #content {
+                margin-left: 0;
+            }
+            #sidebar.collapsed {
+                max-width: 220px;
+                min-width: 220px;
+            }
+            
+        }
+        @media (max-width: 600px) {
+            nav { padding: 0 0.5rem; }
+            main { padding: 1rem 0.2rem; }
+            .nav_searchbar {
+                display: none !important;
+            }
+        }
+        
     </style>
     {% block styles %}
 
@@ -215,22 +239,53 @@
             <span class="brand-text">Yasla</span>
         </div>
         <ul class="side-menu">
-            
+
             {% if role_permissions.dashboard_v %}
             <li><a href="{% url 'dashboard' %}" class="active"><i class='bx bxs-dashboard icon'></i> <span>Dashboard</span></a></li>
             {% endif %}
             
+            {% if role_permissions.roles_v %}
             <li><a href="{% url 'roles_table' %}"><i class='bx bxs-user-rectangle icon'></i> <span>User Roles</span></a></li>
+            {% endif %}
+           
+            {% if role_permissions.users_v %}
             <li><a href="{% url 'admin_user_table' %}"><i class='fa fa-users icon'></i> <span>Users</span></a></li>
-            <li><a href="{% url 'vendors' %}"><i class='fa fa-calendar-check icon'></i> <span>Vendors</span></a></li>
+            {% endif %}
+
+            {% if role_permissions.vendors_v %}
+            <li><a href="{% url 'vendors_table' %}"><i class='fa fa-calendar-check icon'></i> <span>Vendors</span></a></li>
+            {% endif %}
+
+            {% if role_permissions.clients_v %}
             <li><a href="{% url 'customer_table' %}"><i class='fa fa-user-injured icon'></i> <span>Clients</span></a></li>
+            {% endif %}
+
+            {% if role_permissions.category_v %}
             <li><a href="{% url 'service_category_table' %}"><i class="fa fa-spa icon"></i> <span>Service Category</span></a></li>
+            {% endif %}
+
+            {% if role_permissions.services_v %}
             <li><a href="{% url 'service_table' %}"><i class="fa fa-spa icon"></i> <span>Services</span></a></li>
+            {% endif %}
+
+            {% if role_permissions.category_v %}
             <li><a href="{% url 'salon_service_category' %}"><i class="fa fa-spa icon"></i> <span>Salon Service Category</span></a></li>
-            <li><a href="#"><i class='fa fa-calendar icon'></i> <span>Schedule</span></a></li>
-            <li><a href="#"><i class='fa fa-bookmark icon'></i> <span>Booking</span></a></li>
-            <li><a href="#"><i class='fa fa-users icon'></i> <span>Staff</span></a></li>
+            {% endif %}
+
+            {% if role_permissions.schedule_v %}
+            <li><a href="{% url 'schedule_table' %}"><i class='fa fa-calendar icon'></i> <span>Schedule</span></a></li>
+            {% endif %}
+
+            {% if role_permissions.bookings_v %}
+            <li><a href="{% url 'booking_table' %}"><i class='fa fa-bookmark icon'></i> <span>Booking</span></a></li>
+            {% endif %}
+
+            <!-- <li><a href="#"><i class='fa fa-users icon'></i> <span>Staff</span></a></li> -->
+             
+            {% if role_permissions.payment_v %}
             <li><a href="{% url 'payment_table' %}"><i class='fa fa-credit-card icon'></i> <span>Payments</span></a></li>
+            {% endif %}
+
             <li><a href="#"><i class='fa fa-sliders-h icon'></i> <span>Settings</span></a></li>
         </ul>
     </section>
@@ -294,23 +349,42 @@
 
     <script>
 
-        // Toggle sidebar collapse
+        // Sidebar toggle logic for desktop and mobile
         const sidebar = document.getElementById('sidebar');
         const toggleSidebarBtn = document.querySelector('nav .toggle-sidebar');
-        toggleSidebarBtn.addEventListener('click', function () {
-            sidebar.classList.toggle('collapsed');
+
+        function isMobile() {
+            return window.innerWidth <= 900;
+        }
+
+        function closeSidebarOverlay() {
+            if (isMobile()) sidebar.classList.remove('open');
+        }
+
+        toggleSidebarBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (isMobile()) {
+                sidebar.classList.toggle('open');
+            } else {
+                sidebar.classList.toggle('collapsed');
+            }
         });
 
-        // Highlight active sidebar link
-        document.querySelectorAll('#sidebar .side-menu a').forEach(function(link) {
+        // Close sidebar overlay on mobile/tablet when clicking outside
+        document.addEventListener('click', function (e) {
             if (
-                (link.href === window.location.href || window.location.pathname === link.pathname)
-                && link.getAttribute('href') !== '#'
+                isMobile() &&
+                sidebar.classList.contains('open') &&
+                !e.target.closest('#sidebar') &&
+                !e.target.closest('.toggle-sidebar')
             ) {
-                link.classList.add('active');
-            } else {
-                link.classList.remove('active');
+                sidebar.classList.remove('open');
             }
+        });
+
+        // Prevent sidebar click from closing itself on mobile
+        sidebar.addEventListener('click', function (e) {
+            if (isMobile()) e.stopPropagation();
         });
 
         // Profile dropdown

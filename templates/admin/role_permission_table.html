@@ -46,7 +46,7 @@
         font-size: 0.85rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        padding: 12px 16px;
+        padding: 12px 12px;
         text-align: center;
         position: sticky;
         top: 0;
@@ -65,7 +65,7 @@
     }
 
     .table td {
-        padding: 10px;
+        padding: 8px;
         border-bottom: 1px solid #e2e8f0;
         vertical-align: middle;
         text-align: center;
@@ -164,7 +164,9 @@
         {% csrf_token %}
         <div class="secrow d-flex justify-content-between align-items-center p-3">
             <label>Role = {{ role.role_name }}</label>
+            {% if role_permissions.roles_e %}
             <button type="submit" class="btn btn-primary btn-sm ">Save Changes</button>
+            {% endif %}
         </div>
         <div class="table-wrapper">
             <table class="table">
@@ -218,14 +220,34 @@
                         <td class="checkbox-cell"><input type="checkbox" name="vendors_d" {% if permissions.vendors_d %}checked{% endif %}></td>
                     </tr>
 
+                    <tr class="main-row" data-group="branches">
+                        <td>
+                            <h4>Branches</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="branches_v" {% if permissions.branches_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="branches_a" {% if permissions.branches_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="branches_e" {% if permissions.branches_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="branches_d" {% if permissions.branches_d %}checked{% endif %}></td>
+                    </tr>
+
+                    <tr class="main-row" data-group="staff">
+                        <td>
+                            <h4>Staff</h4>
+                        </td>
+                        <td class="checkbox-cell"><input type="checkbox" name="staff_v" {% if permissions.staff_v %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="staff_a" {% if permissions.staff_a %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="staff_e" {% if permissions.staff_e %}checked{% endif %}></td>
+                        <td class="checkbox-cell"><input type="checkbox" name="staff_d" {% if permissions.staff_d %}checked{% endif %}></td>
+                    </tr>
+
                     <tr class="main-row" data-group="clients">
                         <td>
                             <h4>Clients</h4>
                         </td>
                         <td class="checkbox-cell"><input type="checkbox" name="clients_v" {% if permissions.clients_v %}checked{% endif %}></td>
-                        <td class="checkbox-cell"><input type="checkbox" name="clients_a" {% if permissions.clients_a %}checked{% endif %}></td>
-                        <td class="checkbox-cell"><input type="checkbox" name="clients_e" {% if permissions.clients_e %}checked{% endif %}></td>
-                        <td class="checkbox-cell"><input type="checkbox" name="clients_d" {% if permissions.clients_d %}checked{% endif %}></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
                     </tr>
 
                     <tr class="main-row" data-group="category">

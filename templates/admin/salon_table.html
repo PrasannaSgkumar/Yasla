@@ -298,12 +298,13 @@
 
 
 <div class="dashboard-container">
-
+    {% if role_permissions.vendors_a %}
     <div class="d-flex justify-content-end w-100 align-items-center">
-        <a href="{% url 'add_saloon' %}" class="btn btn-primary me-3 mt-2">
+        <a href="{% url 'add_salon' %}" class="btn btn-primary me-3 mt-2">
             <i class="bi bi-plus-circle"></i> Add Salon
         </a>
     </div>
+    {% endif %}
     <div class="dashboard-header">
         <h2 class="dashboard-title">Salon List</h2>
 
@@ -356,15 +357,24 @@
                     <td>{{ salon.city }}</td>
                     <td>{{ salon.rating }}</td>
                     <td class="action-btns">
+                        {% if role_permissions.vendors_v %}
                         <a href="{% url 'view_salon' salon.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
                             <i class="bi bi-eye-fill"></i>
                         </a>
+                        {% endif %}
 
-                        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-fill"></i></button>
+                        {% if role_permissions.vendors_e %}
+                        <a href="{% url 'edit_salon' salon.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        {% endif %}
+
+                        {% if role_permissions.vendors_d %}
                         <a href="{% url 'delete_salon' salon.id %}" class="btn btn-sm btn-outline-danger"
                             onclick="return confirm('Are you sure you want to delete this salon?');" title="Delete">
                             <i class="bi bi-trash-fill"></i>
                         </a>
+                        {% endif %}
                     </td>
                 </tr>
 

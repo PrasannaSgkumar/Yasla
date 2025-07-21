@@ -805,9 +805,10 @@ html.menu-opened body {
 	margin-left: auto;
     position: relative;
 	width: 73px;
-    -webkit-user-select:none;
+	-webkit-user-select:none;
 	-moz-user-select:none;
 	-ms-user-select: none;
+	user-select: none;
 }
 .onoffswitch-checkbox {
     display: none;

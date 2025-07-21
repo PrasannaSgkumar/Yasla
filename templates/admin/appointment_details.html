@@ -1,0 +1,180 @@
+{% extends "Base/base.html" %}
+{% load static %}
+{% block content %}
+
+<style>
+    /* Styles remain unchanged (same as your original) */
+    .user-card-header {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.2rem;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .user-label {
+        color: #9333ea;
+        font-weight: 600;
+    }
+
+    .user-value {
+        color: #22223b;
+    }
+
+    .gradient-title {
+        background: linear-gradient(90deg, #f43f5e 0%, #ec4899 8%, #9333ea 16%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+        font-weight: 700;
+    }
+
+    .btn-back {
+        background: linear-gradient(90deg, #f43f5e 10%, #ec4899 40%, #9333ea 100%);
+        color: #fff;
+    }
+
+    .status-badge {
+        padding: 5px 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        border-radius: 20px;
+        color: #fff;
+    }
+
+    .status-confirmed {
+        background-color: #16a34a;
+    }
+
+    .status-pending {
+        background-color: #f59e0b;
+    }
+
+    .status-cancelled {
+        background-color: #ef4444;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+    <h2 class="my-4 gradient-title">Booking Details</h2>
+    <div class="row g-4">
+
+        <!-- Booking Info -->
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-calendar-check me-2"></i>Booking Info
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Booking ID:</span> <span class="user-value">APT{{ appointment.id }}</span></p>
+                    <p><span class="user-label">Date:</span> <span class="user-value">{{ appointment.booking_date }}</span></p>
+                    <p><span class="user-label">Time Slot:</span> <span class="user-value">{{ appointment.time_slot }}</span></p>
+                    <p><span class="user-label">Booking Type:</span> <span class="user-value">{{ appointment.booking_type|default:"—" }}</span></p>
+                    <p><span class="user-label">Booking Status:</span> 
+                        <span class="user-value">
+                            {% if appointment.status == 'Confirmed' %}
+                                <span class="status-badge status-confirmed">{{ appointment.status }}</span>
+                            {% elif appointment.status == 'Pending' %}
+                                <span class="status-badge status-pending">{{ appointment.status }}</span>
+                            {% elif appointment.status == 'Cancelled' %}
+                                <span class="status-badge status-cancelled">{{ appointment.status }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ appointment.status }}</span>
+                            {% endif %}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Info -->
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-user me-2"></i>Customer Info
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Customer Name:</span> <span class="user-value">{{ appointment.customer.full_name|default:"—" }}</span></p>
+                    <p><span class="user-label">Phone:</span> <span class="user-value">{{ appointment.customer.phone|default:"—" }}</span></p>
+                    <p><span class="user-label">Booking Source:</span> <span class="user-value">{{ appointment.booking_source|default:"—" }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-scissors me-2"></i>Stylist & Branch Info
+                </div>
+                <div class="card-body">
+                    <p>
+                        <span class="user-label">Stylist:</span>
+                        <span class="user-value">{{ appointment.stylist.full_name|default:"—" }}</span>
+                    </p>
+                    
+                    {% if appointment.branch %}
+                        <p>
+                            <span class="user-label">Salon:</span>
+                            <span class="user-value">{{ appointment.branch.salon.salon_name|default:"—" }}</span>
+                        </p>
+                        <p>
+                            <span class="user-label">Branch:</span>
+                            <span class="user-value">{{ appointment.branch.branch_name|default:"—" }}</span>
+                        </p>
+                    {% else %}
+                        <p>
+                            <span class="user-label">Salon:</span>
+                            <span class="user-value">{{ appointment.salon.salon_name|default:"—" }}</span>
+                        </p>
+                    {% endif %}
+
+                    <p>
+                        <span class="user-label">Assigned By:</span>
+                        <span class="user-value">{{ appointment.assigned_by|default:"—" }}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Payment Info -->
+        <div class="col-lg-6 col-md-6 col-sm-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-money-bill-wave me-2"></i>Payment Info
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Amount:</span> <span class="user-value">₹{{ appointment.bill_amount|default:"0.00" }}</span></p>
+                    <p><span class="user-label">Payment Status:</span> 
+                        <span class="user-value"><span class="badge bg-success">{{ appointment.payment_status|default:"—" }}</span></span>
+                    </p>
+                    <p><span class="user-label">Payment Mode:</span> <span class="user-value">{{ appointment.payment_mode|default:"—" }}</span></p>
+                    <p><span class="user-label">Invoice ID:</span> <span class="user-value">{{ appointment.invoice_id|default:"—" }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="col-12 d-flex">
+            <div class="card flex-grow-1">
+                <div class="card-header user-card-header">
+                    <i class="fas fa-sticky-note me-2"></i>Notes
+                </div>
+                <div class="card-body">
+                    <p><span class="user-label">Customer Message:</span> <span class="user-value">{{ appointment.customer_message|default:"—" }}</span></p>
+                    <p><span class="user-label">Staff Notes:</span> <span class="user-value">{{ appointment.staff_notes|default:"—" }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="mt-4">
+            <button onclick="window.history.back()" class="btn btn-back">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

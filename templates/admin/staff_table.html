@@ -1,6 +1,6 @@
-{% extends "Base/base.html" %}
 {% load static %}
-{% block content %}
+
+
 <style>
     :root {
         --primary: #9333ea;
@@ -245,15 +245,15 @@
 
 
 <div class="dashboard-container">
-    {% if role_permissions.category_a %}
+    {% if role_permissions.staff_a %}
     <div class="d-flex justify-content-end w-100 align-items-center">
-        <a href="{% url 'add_category' %}" class="btn btn-primary me-4 mt-3">
-            <i class="bi bi-plus-circle"></i> Add Service
+        <a href="{% url 'add_user' vendor.id %}" class="btn btn-primary me-4 mt-3">
+            <i class="bi bi-plus-circle"></i> Add User
         </a>
     </div>
     {% endif %}
     <div class="dashboard-header">
-        <h2 class="dashboard-title">Salon Services</h2>
+        <h2 class="dashboard-title">Salon Users</h2>
         <div class="controls-wrapper">
             <div class="entries-select">
                 <label for="entriesPerPage">Show</label>
@@ -272,51 +272,70 @@
     </div>
     <div class="table-responsive">
         <table class="user-table">
-    <thead>
-        <tr>
-            <th>SI. No</th>
-            <th>Category Name</th>
-            <th>Description</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for service in categories %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-             <td>{{ service.service_category_name }}</td>
-            
-            <td>{{ service.service_category_description }}</td>
-            
-           
-            <td class="action-btns">
-                {% comment %} <a href="{% url 'view_service' service.id %}" class="btn btn-sm btn-outline-primary" title="View">
-                    <i class="bi bi-eye-fill"></i>
-                </a> {% endcomment %}
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>Branch Name</th>
+                    <th>Profile</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>User Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        {% for branch in user.branches.all %}
+                            {{ branch.branch_name }}
+                        {% empty %}
+                            No Branches
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% if user.profile_image %}
+                        <img src="{{ user.profile_image }}" class="profile-img-thumb" alt="Profile">
+                        {% else %}
+                        <img src="{% static 'default-user.png' %}" class="profile-img-thumb" alt="No Image">
+                        {% endif %}
+                    </td>
+                    <td>{{ user.full_name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone }}</td>
+                    <td>{{ user.get_user_role_display }}</td>
+                    <td>
+                        <span class="status-badge status-{{ user.status|lower }}">{{ user.status }}</span>
+                    </td>
+                    <td class="action-btns">
+                        {% if role_permissions.staff_v %}
+                        <a href="{% url 'view_user' user.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                            <i class="bi bi-eye-fill"></i>
+                        </a>
+                        {% endif %}
+                        {% if role_permissions.staff_e %}
+                        <a href="{% url 'edit_user' user.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        {% endif %}
+                        {% if role_permissions.staff_d %}
+                        <a href="{% url 'delete_user' user.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this User?');" title="Delete">
+                            <i class="bi bi-trash-fill"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center">No users found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
 
-                {% if role_permissions.category_e %}
-                <a href="{% url 'edit_category' service.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
-                    <i class="bi bi-pencil-fill"></i>
-                </a>
-                {% endif %}
-
-                {% if role_permissions.category_d %}
-                <a href="{% url 'delete_category' service.id %}" class="btn btn-sm btn-outline-danger"
-                   onclick="return confirm('Are you sure you want to delete this service?');"
-                   title="Delete">
-                    <i class="bi bi-trash-fill"></i>
-                </a>
-                {% endif %}
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="10" class="text-center">No services found.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
+        </table>
     </div>
     <div class="dashboard-footer">
         <div class="pagination-info" id="paginationInfo"></div>
@@ -410,5 +429,3 @@
         renderTable();
     });
 </script>
-
-{% endblock content %}

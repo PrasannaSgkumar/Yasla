@@ -40,6 +40,16 @@ class RolePermissions(models.Model):
     vendors_e = models.BooleanField(default=False)
     vendors_d = models.BooleanField(default=False)
 
+    branches_v = models.BooleanField(default=False)
+    branches_a = models.BooleanField(default=False)
+    branches_e = models.BooleanField(default=False)
+    branches_d = models.BooleanField(default=False)
+
+    staff_v = models.BooleanField(default=False)
+    staff_a = models.BooleanField(default=False)
+    staff_e = models.BooleanField(default=False)
+    staff_d = models.BooleanField(default=False)
+
     clients_v = models.BooleanField(default=False)
     clients_a = models.BooleanField(default=False)
     clients_e = models.BooleanField(default=False)
@@ -88,7 +98,6 @@ class Admin_User(models.Model):
         if self.password and not self.password.startswith('pbkdf2_'):
             self.password = make_password(self.password)
         super().save(*args, **kwargs)
-
 
 
 
