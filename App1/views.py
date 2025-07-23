@@ -28,6 +28,8 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.utils.dateparse import parse_datetime
 
+from django.contrib.auth import logout
+
 
 
 class UserLoginView(APIView):
@@ -2072,6 +2074,8 @@ def edit_service(request, id):
         edit_service.category = Service_Category.objects.filter(id=category_id).first()
         edit_service.description = request.POST.get('description')
         edit_service.gender_specific = request.POST.get('gender_specific')
+        edit_service.popular = request.POST.get('is_popular') == 'on'
+
 
         edit_service.save()
         messages.success(request, "Service updated successfully.")
@@ -2507,3 +2511,11 @@ def view_appointment(request, id):
         'data':data,
         'role_permissions': role_permissions
     })
+
+def logout_user(request):
+    
+    request.session.flush()
+    logout(request)
+    messages.success(request, "You have been logged out.")
+    
+    return redirect('login')

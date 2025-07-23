@@ -115,5 +115,6 @@ urlpatterns = [
     path('bookings/list/', booking_table, name='booking_table'),
     path('schedule/list/', schedule_table, name='schedule_table'),
     path('booking/view/<int:id>/', view_appointment, name='view_appointment'),
+    path('logout/', logout_user, name='logout'),
 
 ]
