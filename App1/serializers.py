@@ -90,15 +90,18 @@ class ServiceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class AppointmentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Appointment
-        fields = '__all__'
-
 class AppointmentServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppointmentService
         fields = '__all__'
+
+
+class AppointmentSerializer(serializers.ModelSerializer):
+    appointment_services = AppointmentServiceSerializer(many=True, read_only=True)
+    class Meta:
+        model = Appointment
+        fields = '__all__'
+
 
 
 class PaymentSerializer(serializers.ModelSerializer):

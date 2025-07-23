@@ -729,41 +729,84 @@ class AppointmentDetailView(APIView):
     def put(self, request, id):
         appointment = get_object_or_404(Appointment, id=id)
         data = request.data.copy()
-        services = data.pop("services", [])
+        services_data = data.pop("appointment_services", [])
 
-        serializer = AppointmentSerializer(appointment, data=data, partial=True)
-        if serializer.is_valid():
-            updated_appointment = serializer.save()
+        stylist_id = data.get('stylist')
+        start_datetime = parse_datetime(data.get('start_datetime'))
 
-            # Update services
-            updated_appointment.appointment_services.all().delete()
-            for service in services:
-                if isinstance(service, dict):
-                    service_id = service.get("id")
-                    duration_min = service.get("duration_min")
-                else:
-                    service_id = service
-                    duration_min = None
+        if not services_data:
+            return Response({"error": "appointment_services is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-                AppointmentService.objects.create(
-                    appointment=updated_appointment,
-                    service_id=service_id,
-                    duration_min=duration_min
-                )
+        if not start_datetime:
+            return Response({"error": "Invalid or missing start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
 
-            updated_appointment.save()
+        # Check for overlapping appointments excluding current one
+        overlapping_appointments = Appointment.objects.filter(
+            stylist_id=stylist_id,
+            start_datetime=start_datetime
+        ).exclude(id=appointment.id)
 
+        if overlapping_appointments.exists():
             return Response({
-                "status": "success",
-                "message": "Appointment updated successfully",
-                "data": AppointmentSerializer(updated_appointment).data
-            })
+                "error": "Stylist already has an appointment during this time."
+            }, status=status.HTTP_409_CONFLICT)
 
-        return Response({
-            "status": "error",
-            "message": "Validation failed",
-            "errors": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            total_cost = 0
+            total_duration = timedelta()
+
+            for service_obj in services_data:
+                service_id = service_obj.get("service")
+                if not service_id:
+                    return Response({"error": "Missing service ID in appointment_services."}, status=status.HTTP_400_BAD_REQUEST)
+
+                branch = data.get("branch")
+                salon = data.get("salon")
+
+                if branch:
+                    availability = SalonServiceAvailability.objects.filter(branch=branch, service=service_id).first()
+                else:
+                    availability = SalonServiceAvailability.objects.filter(salon=salon, service=service_id).first()
+
+                if not availability:
+                    return Response({"error": f"Service ID {service_id} is not available in the selected salon/branch."},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+                total_cost += availability.cost
+                total_duration += availability.completion_time
+
+            # Set computed fields
+            data["bill_amount"] = total_cost
+            data["end_datetime"] = start_datetime + total_duration
+
+            # Update appointment
+            serializer = AppointmentSerializer(appointment, data=data, partial=True)
+            if serializer.is_valid():
+                updated_appointment = serializer.save()
+
+                # Remove old services and add new ones
+                updated_appointment.appointment_services.all().delete()
+                for service_obj in services_data:
+                    AppointmentService.objects.create(
+                        appointment=updated_appointment,
+                        service_id=service_obj["service"]
+                    )
+
+                return Response({
+                    "status": "success",
+                    "message": "Appointment updated successfully",
+                    "data": AppointmentSerializer(updated_appointment).data
+                })
+            else:
+                return Response({
+                    "status": "error",
+                    "message": "Validation failed",
+                    "errors": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
