@@ -317,6 +317,8 @@ class Appointment(models.Model):
         CONFIRMED = 'Confirmed', 'Confirmed'
         COMPLETED = 'Completed', 'Completed'
         CANCELLED = 'Cancelled', 'Cancelled'
+        Accepted=  'Accepted', 'Accepted'
+        Declined=  'Declined', 'Declined'
 
     status = models.CharField(max_length=20, choices=BookingStatusChoices.choices,
                               default=BookingStatusChoices.PENDING)
