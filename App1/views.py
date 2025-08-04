@@ -684,13 +684,11 @@ def send_appointment_update(appointment):
     channel_layer = get_channel_layer()
     data = {
         'id': appointment.id,
-        'date': str(appointment.date),
-        'start_time': str(appointment.start_time),
-        'end_time': str(appointment.end_time),
+        'date_time': str(appointment.start_datetime),
         'status': appointment.status,
         'stylist': appointment.stylist.id,
         'salon': appointment.salon.id,
-        'customer_name': appointment.customer_name
+        'customer_name': appointment.customer.full_name
     }
 
     if appointment.stylist_id:
