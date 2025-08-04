@@ -10,6 +10,9 @@ urlpatterns = [
     path('salon-branches/', SalonBranchView.as_view(), name='salon-branch-list-create'),
     path('salon-branches/<int:id>/', SalonBranchDetailView.as_view(), name='salon-branch-detail'),
 
+    path('bank-details/', BankDetailsView.as_view(), name='bank-details'),
+    path('bank-details/<int:id>/', BankDetailsDetailView.as_view(), name='bank-details-detail'),
+
     # Salon Gallery URLs
     path('salon-galleries/', SalonGalleryView.as_view(), name='salon-gallery-list-create'),
     path('salon-galleries/<int:id>/', SalonGalleryDetailView.as_view(), name='salon-gallery-detail'),

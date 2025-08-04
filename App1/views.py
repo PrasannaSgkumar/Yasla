@@ -211,6 +211,67 @@ class SalonDetailView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @method_decorator(csrf_exempt, name='dispatch')
+class BankDetailsView(APIView):
+    def post(self, request):
+        salon_id = request.data.get("salon_id")
+        if not salon_id:
+            return Response({"error": "salon_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        salon = get_object_or_404(Salon, id=salon_id)
+
+        if hasattr(salon, 'bank_details'):
+            return Response({"error": "Bank details already exist for this salon."}, status=400)
+
+        serializer = BankDetailsSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(salon=salon)
+            return Response({
+                "status": "success",
+                "message": "Bank details added successfully",
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({
+                "status": "error",
+                "message": "Validation failed",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class BankDetailsDetailView(APIView):
+    def get(self, request, id):
+        bank_details = get_object_or_404(BankDetails, id=id)
+        serializer = BankDetailsSerializer(bank_details)
+        return Response({
+            "status": "success",
+            "message": "Bank details retrieved successfully",
+            "data": serializer.data
+        })
+
+    def put(self, request, id):
+        bank_details = get_object_or_404(BankDetails, id=id)
+        serializer = BankDetailsSerializer(bank_details, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "status": "success",
+                "message": "Bank details updated successfully",
+                "data": serializer.data
+            })
+        else:
+            return Response({
+                "status": "error",
+                "message": "Validation failed",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
 class SalonBranchView(APIView):
     def get(self, request):
         branches = SalonBranch.objects.all()
@@ -616,6 +677,44 @@ class ServiceDetailView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+def send_appointment_update(appointment):
+    channel_layer = get_channel_layer()
+    data = {
+        'id': appointment.id,
+        'date': str(appointment.date),
+        'start_time': str(appointment.start_time),
+        'end_time': str(appointment.end_time),
+        'status': appointment.status,
+        'stylist': appointment.stylist.id,
+        'salon': appointment.salon.id,
+        'customer_name': appointment.customer_name
+    }
+
+    if appointment.stylist_id:
+        async_to_sync(channel_layer.group_send)(
+            f'stylist_{appointment.stylist_id}',
+            {
+                'type': 'appointment_update',
+                'data': data
+            }
+        )
+
+    if appointment.salon_id:
+        async_to_sync(channel_layer.group_send)(
+            f'salon_{appointment.salon_id}',
+            {
+                'type': 'appointment_update',
+                'data': data
+            }
+        )
+
+
+
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class AppointmentView(APIView):
     def get(self, request):
@@ -698,6 +797,7 @@ class AppointmentView(APIView):
             serializer = AppointmentSerializer(data=data)
             if serializer.is_valid():
                 appointment = serializer.save()
+                send_appointment_update(appointment)
 
                 # Save appointment services
                 for service_obj in services_data:

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'drf_yasg',
+    'channels',
 
 ]
 
@@ -75,6 +76,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Yasla.wsgi.application'
+ASGI_APPLICATION = 'Yasla.asgi.application'
+
+# Optional (for development):
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 
 # Database

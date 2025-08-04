@@ -218,3 +218,21 @@ class SalonServiceSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['approved'] = False  # enforce approval False
         return super().create(validated_data)
+    
+
+
+class BankDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BankDetails
+        fields = [
+            'id',
+            'account_holder_name',
+            'bank_name',
+            'account_number',
+            'ifsc_code',
+            'upi_id',
+            'razorpay_contact_id',
+            'razorpay_fund_account_id',
+            'is_verified',
+        ]
+        read_only_fields = ['razorpay_contact_id', 'razorpay_fund_account_id', 'is_verified']

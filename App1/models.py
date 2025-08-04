@@ -1,14 +1,14 @@
 from django.db import models
 
-import uuid
 from django.db import models
 from django.contrib.auth.hashers import make_password
 
 from django.conf import settings
 from decimal import Decimal
 
-from django.db import models
-from django.contrib.auth.hashers import make_password
+
+from django.core.validators import RegexValidator
+
 
 class Roles(models.Model):
     role_name = models.CharField(max_length=100)
@@ -107,6 +107,10 @@ class Salon(models.Model):
         MEN = 'Men', 'Men'
         WOMEN = 'Women', 'Women'
         UNISEX = 'Unisex', 'Unisex'
+    class SalonStatusChoices(models.TextChoices):
+        ONLINE = 'Online', 'Online'
+        OFFLINE = 'Offline', 'Offline'
+
     salon_name = models.CharField(max_length=255)
     vendor_name = models.CharField(max_length=255)
     email = models.EmailField()
@@ -132,9 +136,32 @@ class Salon(models.Model):
     latitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
     rating = models.DecimalField(max_digits=2, decimal_places=1, null=True, blank=True)
+    salon_status = models.CharField(
+        max_length=10,
+        choices=SalonStatusChoices.choices,
+        default=SalonStatusChoices.OFFLINE  # Default is now Offline
+    )
 
     def __str__(self):
         return self.salon_name
+
+class BankDetails(models.Model):
+    salon = models.OneToOneField('Salon', on_delete=models.CASCADE, related_name='bank_details')
+    account_holder_name = models.CharField(max_length=255)
+    bank_name = models.CharField(max_length=255)
+    account_number = models.CharField(max_length=30)
+    ifsc_code = models.CharField(
+        max_length=20,
+        validators=[RegexValidator(r'^[A-Z]{4}0[A-Z0-9]{6}$', 'Enter a valid IFSC code')]
+    )
+    upi_id = models.CharField(max_length=100, null=True, blank=True)
+    razorpay_contact_id = models.CharField(max_length=100, null=True, blank=True)
+    razorpay_fund_account_id = models.CharField(max_length=100, null=True, blank=True)
+    is_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.salon.salon_name} - {self.account_holder_name}"
+
 
 
 class SalonBranch(models.Model):
@@ -142,6 +169,11 @@ class SalonBranch(models.Model):
         MEN = 'Men', 'Men'
         WOMEN = 'Women', 'Women'
         UNISEX = 'Unisex', 'Unisex'
+
+    class SalonStatusChoices(models.TextChoices):
+        ONLINE = 'Online', 'Online'
+        OFFLINE = 'Offline', 'Offline'
+
     salon = models.ForeignKey(Salon, on_delete=models.CASCADE, related_name='branches')
     salon_category = models.CharField(
         max_length=100,
@@ -165,6 +197,11 @@ class SalonBranch(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    salon_status = models.CharField(
+        max_length=10,
+        choices=SalonStatusChoices.choices,
+        default=SalonStatusChoices.OFFLINE  # Default is now Offline
+    )
 
     def __str__(self):
         return f"{self.branch_name} ({self.city})"
@@ -203,8 +240,7 @@ class User(models.Model):
     )
 
     profile_image = models.TextField(null=True, blank=True)
-    status = models.CharField(max_length=50, default='Active')  # You can also use choices here if needed
-    last_login = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=50, default='Active')  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -215,7 +251,7 @@ class User(models.Model):
         return f"{self.full_name} - {self.user_role}"
     
     def save(self, *args, **kwargs):
-    # Hash the password only if it’s not already hashed
+   
         if self.password and not self.password.startswith('pbkdf2_'):
             self.password = make_password(self.password)
         super().save(*args, **kwargs)

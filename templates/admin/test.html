@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Appointment Table</title>
+</head>
+<body>
+  <h2>Appointment Details</h2>
+  <table border="1" id="appointmentTable">
+    <thead>
+      <tr>
+        <th>Appointment ID</th>
+        <th>Salon</th>
+        <th>Stylist</th>
+        <th>Customer</th>
+        <th>Date & Time</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="appointmentBody">
+      <!-- Appointment rows will appear here -->
+    </tbody>
+  </table>
+
+  <script>
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.host;
+    const stylistId = 1;
+
+    const socket = new WebSocket("ws://localhost:8000/ws/appointments/1/");
+
+
+    socket.onopen = () => {
+      console.log("WebSocket connected");
+    };
+
+    socket.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        console.log("Message received:", data);
+
+        // Build a table row
+        const newRow = `
+          <tr>
+            <td>${data.appointment_id}</td>
+            <td>${data.salon}</td>
+            <td>${data.stylist}</td>
+            <td>${data.customer}</td>
+            <td>${data.datetime}</td>
+            <td>${data.status}</td>
+          </tr>
+        `;
+
+        // Add it to the table body
+        document.getElementById("appointmentBody").innerHTML = newRow;
+      } catch (err) {
+        console.error("Error parsing WebSocket message", err);
+      }
+    };
+
+    socket.onerror = (e) => {
+      console.error("WebSocket error", e);
+    };
+
+    socket.onclose = (e) => {
+      console.log("WebSocket closed unexpectedly", e);
+    };
+  </script>
+</body>
+</html>
