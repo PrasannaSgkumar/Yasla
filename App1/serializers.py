@@ -119,7 +119,7 @@ class FeedbackSerializer(serializers.ModelSerializer):
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        exclude = ['id', 'last_login', 'created_at', 'updated_at']
+        exclude = ['id',  'created_at', 'updated_at']
         extra_kwargs = {
             'password': {'write_only': True},
             'salon': {'read_only': True}  # ✅ this is important!
