@@ -1402,6 +1402,22 @@ class SalonServiceDetailView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class FilterServicesByGender(APIView):
+    def get(self, request):
+        gender = request.query_params.get('gender', '').capitalize()
+
+        if gender not in ['Male', 'Female']:
+            return Response(
+                {"error": "Invalid gender. Use 'Male' or 'Female'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        services = Service.objects.filter(gender_specific__in=[gender, 'Unisex'])
+        serializer = ServiceSerializer(services, many=True)
+        return Response(serializer.data)
+
+
+
 #SuperAdmin Views
 
 

@@ -3,7 +3,7 @@ from .views import *
 
 urlpatterns = [
 
-   path('salons/', SalonView.as_view(), name='salon-list-create'),
+    path('salons/', SalonView.as_view(), name='salon-list-create'),
     path('salons/<int:id>/', SalonDetailView.as_view(), name='salon-detail'),
 
     # Salon Branch URLs
@@ -50,6 +50,7 @@ urlpatterns = [
     path('user_login', UserLoginView.as_view(), name='user-login'),
     path('api/service-availability/', SalonServiceAvailabilityListCreateAPI.as_view(), name='availability-list-create'),
     path('api/service-availability/<int:id>/', SalonServiceAvailabilityDetailAPI.as_view(), name='availability-detail'),
+    path('services/filter-by-gender/', FilterServicesByGender.as_view(), name='filter_services_by_gender'),
 
     path('api/salon-services/', SalonServiceView.as_view(), name='salon-services'),
     path('api/salon-services/<int:id>/', SalonServiceDetailView.as_view(), name='salon-service-detail'),
