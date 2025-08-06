@@ -236,3 +236,24 @@ class BankDetailsSerializer(serializers.ModelSerializer):
             'is_verified',
         ]
         read_only_fields = ['razorpay_contact_id', 'razorpay_fund_account_id', 'is_verified']
+
+
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(min_length=6)
+
+
+class ForgotPasswordUserSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class ResetPasswordUserSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(min_length=6)

@@ -11,7 +11,11 @@ urlpatterns = [
     path('salon-branches/<int:id>/', SalonBranchDetailView.as_view(), name='salon-branch-detail'),
 
     path('bank-details/', BankDetailsView.as_view(), name='bank-details'),
-    path('bank-details/<int:id>/', BankDetailsDetailView.as_view(), name='bank-details-detail'),
+    path('bank-details/<int:salon_id>/', BankDetailsDetailView.as_view(), name='bank-details-by-salon'),
+    path('customer/forgot-password/', ForgotPasswordAPIView.as_view(), name='forgot-password'),
+    path('customer/reset-password/', ResetPasswordAPIView.as_view(), name='reset-password'),
+    path('user/forgot-password/', ForgotPasswordUserAPIView.as_view(), name='user-forgot-password'),
+    path('user/reset-password/', ResetPasswordUserAPIView.as_view(), name='user-reset-password'),
 
     # Salon Gallery URLs
     path('salon-galleries/', SalonGalleryView.as_view(), name='salon-gallery-list-create'),

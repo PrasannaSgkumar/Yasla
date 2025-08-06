@@ -166,3 +166,15 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,  # Prevent exposing schema at /schema
     'SERVE_SWAGGER_UI': True,  # Enable serving the Swagger UI template
 }
+
+
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = 'prasannasgkumar@gmail.com'          # your Gmail address
+EMAIL_HOST_PASSWORD = 'bhrv tdxy npnj mtdk'  # NOT your regular password (see below)
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

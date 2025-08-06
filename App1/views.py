@@ -27,7 +27,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.utils.dateparse import parse_datetime
-
+from django.core.mail import send_mail
 from django.contrib.auth import logout
 
 
@@ -237,12 +237,10 @@ class BankDetailsView(APIView):
                 "errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-
-
 @method_decorator(csrf_exempt, name='dispatch')
 class BankDetailsDetailView(APIView):
-    def get(self, request, id):
-        bank_details = get_object_or_404(BankDetails, id=id)
+    def get(self, request, salon_id):
+        bank_details = get_object_or_404(BankDetails, salon__id=salon_id)
         serializer = BankDetailsSerializer(bank_details)
         return Response({
             "status": "success",
@@ -250,8 +248,8 @@ class BankDetailsDetailView(APIView):
             "data": serializer.data
         })
 
-    def put(self, request, id):
-        bank_details = get_object_or_404(BankDetails, id=id)
+    def put(self, request, salon_id):
+        bank_details = get_object_or_404(BankDetails, salon__id=salon_id)
         serializer = BankDetailsSerializer(bank_details, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -266,6 +264,7 @@ class BankDetailsDetailView(APIView):
                 "message": "Validation failed",
                 "errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
@@ -1415,6 +1414,147 @@ class FilterServicesByGender(APIView):
         return Response(serializer.data)
 
 
+
+
+class ForgotPasswordAPIView(APIView):
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                customer = Customer.objects.get(email=email)
+            except Customer.DoesNotExist:
+                return Response({'error': 'Customer with this email does not exist.'}, status=404)
+
+            code = ''.join(random.choices('0123456789', k=6))
+            PasswordResetCode.objects.create(customer=customer, code=code)
+
+
+            subject = 'Reset Your Password - Yasla Service'  
+            message = f"""
+Dear {customer.full_name},
+
+We received a request to reset your password.
+
+Your OTP code is: {code}
+
+This code is valid for 10 minutes.
+
+If you did not request a password reset, please ignore this email.
+
+Thanks,  
+Yasla Support Team
+            """
+
+            send_mail(
+                subject,
+                message.strip(),
+                'prasannasgkumar@gmail.com',  
+                [email],
+                fail_silently=False,
+            )
+
+            return Response({'message': 'Reset code sent to your email.'})
+        return Response(serializer.errors, status=400)
+
+
+
+class ResetPasswordAPIView(APIView):
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            code = serializer.validated_data['code']
+            new_password = serializer.validated_data['new_password']
+
+            try:
+                customer = Customer.objects.get(email=email)
+            except Customer.DoesNotExist:
+                return Response({'error': 'Customer not found'}, status=404)
+
+            try:
+                reset_entry = PasswordResetCode.objects.filter(customer=customer, code=code).latest('created_at')
+            except PasswordResetCode.DoesNotExist:
+                return Response({'error': 'Invalid code'}, status=400)
+
+            if not reset_entry.is_valid():
+                return Response({'error': 'Code expired'}, status=400)
+
+            customer.password = make_password(new_password)
+            customer.save()
+            PasswordResetCode.objects.filter(customer=customer).delete()
+
+            return Response({'message': 'Password has been reset successfully.'})
+        return Response(serializer.errors, status=400)
+   
+    
+class ForgotPasswordUserAPIView(APIView):
+    def post(self, request):
+        serializer = ForgotPasswordUserSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response({'error': 'User with this email does not exist.'}, status=404)
+
+            code = ''.join(random.choices('0123456789', k=6))
+            PasswordResetCodeForUser.objects.create(user=user, code=code)
+
+            subject = 'Reset Your Password - Yasla Salon Staff'
+            message = f"""
+Dear {user.full_name},
+
+Your password reset code is: {code}
+
+This code is valid for 10 minutes.
+
+If you did not request a password reset, please ignore this message.
+
+Regards,  
+Yasla Team
+            """
+
+            send_mail(
+                subject,
+                message.strip(),
+                'noreply@yaslaservice.com',
+                [email],
+                fail_silently=False,
+            )
+
+            return Response({'message': 'Reset code sent to your email.'})
+        return Response(serializer.errors, status=400)
+
+
+class ResetPasswordUserAPIView(APIView):
+    def post(self, request):
+        serializer = ResetPasswordUserSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            code = serializer.validated_data['code']
+            new_password = serializer.validated_data['new_password']
+
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response({'error': 'User not found'}, status=404)
+
+            try:
+                reset_entry = PasswordResetCodeForUser.objects.filter(user=user, code=code).latest('created_at')
+            except PasswordResetCodeForUser.DoesNotExist:
+                return Response({'error': 'Invalid code'}, status=400)
+
+            if not reset_entry.is_valid():
+                return Response({'error': 'Code expired'}, status=400)
+
+            user.password = make_password(new_password)
+            user.save()
+
+            PasswordResetCodeForUser.objects.filter(user=user).delete()
+
+            return Response({'message': 'Password has been reset successfully.'})
+        return Response(serializer.errors, status=400)
 
 #SuperAdmin Views
 

@@ -5,7 +5,10 @@ from django.contrib.auth.hashers import make_password
 
 from django.conf import settings
 from decimal import Decimal
-
+from django.utils import timezone
+from datetime import timedelta
+import random
+import string
 
 from django.core.validators import RegexValidator
 
@@ -273,7 +276,8 @@ class Customer(models.Model):
     address = models.CharField(max_length=255, null=True, blank=True)
     city = models.CharField(max_length=100, null=True, blank=True)
     pincode = models.CharField(max_length=10, null=True, blank=True)
-
+    latitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=6, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_login = models.DateTimeField(null=True, blank=True)
@@ -568,3 +572,27 @@ class Salon_Service(models.Model):
 
     def __str__(self):
         return self.service_name
+    
+
+class PasswordResetCode(models.Model):
+    customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        return timezone.now() < self.created_at + timedelta(minutes=10)  
+
+    def __str__(self):
+        return f"{self.customer.email} - {self.code}"
+    
+
+class PasswordResetCodeForUser(models.Model):
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        return timezone.now() < self.created_at + timedelta(minutes=10)  
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code}"
