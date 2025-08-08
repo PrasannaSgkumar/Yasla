@@ -11,23 +11,39 @@ from django.utils.timezone import now
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+import requests
+from requests.auth import HTTPBasicAuth
+
+
 
 from .models import Vendor_Payment, Appointment, BankDetails
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-
+import requests
+from requests.auth import HTTPBasicAuth
+from django.conf import settings
 
 def create_razorpay_contact_and_fund(bank_details):
-    contact = client.contact.create({
+    auth = HTTPBasicAuth(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+
+    # 1. Create Contact
+    contact_data = {
         "name": bank_details.salon.salon_name,
         "email": bank_details.salon.email,
         "contact": bank_details.salon.phone,
         "type": "vendor",
         "reference_id": f"salon_{bank_details.salon.id}"
-    })
+    }
+    contact_resp = requests.post(
+        "https://api.razorpay.com/v1/contacts",
+        auth=auth,
+        json=contact_data
+    )
+    contact_resp.raise_for_status()  # raise error if bad response
+    contact = contact_resp.json()
 
-    # Create Fund Account
-    fund_account = client.fund_account.create({
+    # 2. Create Fund Account
+    fund_account_data = {
         "contact_id": contact["id"],
         "account_type": "bank_account",
         "bank_account": {
@@ -35,7 +51,16 @@ def create_razorpay_contact_and_fund(bank_details):
             "ifsc": bank_details.ifsc_code,
             "account_number": bank_details.account_number
         }
-    })
+    }
+    fund_account_resp = requests.post(
+        "https://api.razorpay.com/v1/fund_accounts",
+        auth=auth,
+        json=fund_account_data
+    )
+    fund_account_resp.raise_for_status()
+    fund_account = fund_account_resp.json()
+
+    # 3. Save to DB
     bank_details.razorpay_contact_id = contact["id"]
     bank_details.razorpay_fund_account_id = fund_account["id"]
     bank_details.is_verified = True
@@ -45,6 +70,7 @@ def create_razorpay_contact_and_fund(bank_details):
         "contact_id": contact["id"],
         "fund_account_id": fund_account["id"]
     }
+
 
 
 

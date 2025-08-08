@@ -1669,6 +1669,31 @@ class SalonServicesByGenderView(APIView):
             )
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import SalonServiceAvailability
+
+class SalonsByServiceView(APIView):
+    def get(self, request, service_id):
+        availability_qs = SalonServiceAvailability.objects.filter(
+            service_id=service_id,
+            is_available=True,
+            salon__isnull=False  
+        ).select_related('salon')
+
+     
+        results = []
+        for entry in availability_qs:
+             results.append({
+                'service_id': entry.service.id,
+                'salon_id': entry.salon.id,
+                'salon_name': entry.salon.salon_name,
+                'cost': entry.cost,
+                'completion_time': entry.completion_time,
+            })
+
+        return Response(results, status=status.HTTP_200_OK)
 
 
 

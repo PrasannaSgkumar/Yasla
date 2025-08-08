@@ -20,6 +20,7 @@ urlpatterns = [
     # Salon Gallery URLs
     path('salon-galleries/', SalonGalleryView.as_view(), name='salon-gallery-list-create'),
     path('salon-galleries/<int:id>/', SalonGalleryDetailView.as_view(), name='salon-gallery-detail'),
+    path('salons/service/<int:service_id>/', SalonsByServiceView.as_view(), name='salons-by-service'),
 
     # User URLs
     path('users/', UserView.as_view(), name='user-list-create'),
