@@ -104,10 +104,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
 
 
-class PaymentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Payment
-        fields = '__all__'
+
 
 
 class FeedbackSerializer(serializers.ModelSerializer):

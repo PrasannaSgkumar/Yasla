@@ -42,12 +42,15 @@ urlpatterns = [
     path('appointment-services/<int:id>/', AppointmentServiceDetailView.as_view(), name='appointment-service-detail'),
 
     # Payment URLs
-    path('payments/', PaymentView.as_view(), name='payment-list-create'),
-    path('payments/<int:id>/', PaymentDetailView.as_view(), name='payment-detail'),
-
+    # path('payments/', PaymentView.as_view(), name='payment-list-create'),
+    # path('payments/<int:id>/', PaymentDetailView.as_view(), name='payment-detail'),
+    path('payment/initiate/<int:appointment_id>/', InitiatePaymentView.as_view(), name='initiate-payment'),
+    path('appointments/stylist/<int:stylist_id>/',StylistAppointmentsView.as_view(), name='stylist-appointments' ),
+    path('appointments/customer/<int:customer_id>/',CustomerAppointmentsView.as_view(),name='customer-appointments'),
     # Feedback URLs
     path('feedbacks/', FeedbackView.as_view(), name='feedback-list-create'),
     path('feedbacks/<int:id>/', FeedbackDetailView.as_view(), name='feedback-detail'),
+    path('salon/<int:salon_id>/services/<str:gender>/',SalonServicesByGenderView.as_view(),name='salon-services-by-gender' ),
 
     #login Api's
     path('customer_login', CustomerLoginView.as_view(), name='customer-login'),
@@ -124,5 +127,6 @@ urlpatterns = [
     path('schedule/list/', schedule_table, name='schedule_table'),
     path('booking/view/<int:id>/', view_appointment, name='view_appointment'),
     path('logout/', logout_user, name='logout'),
+    path('pay/<int:appointment_id>/', payment_page, name='payment_page'),
 
 ]

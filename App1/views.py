@@ -20,15 +20,16 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
 from rest_framework.views import APIView
-from rest_framework.response import Response
+
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-
+from .razor_order import *
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.utils.dateparse import parse_datetime
 from django.core.mail import send_mail
 from django.contrib.auth import logout
+import razorpay
 
 
 
@@ -224,18 +225,28 @@ class BankDetailsView(APIView):
 
         serializer = BankDetailsSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(salon=salon)
+            bank_details = serializer.save(salon=salon)
+
+            try:
+                razorpay_ids = create_razorpay_contact_and_fund(bank_details)
+            except Exception as e:
+                return Response({
+                    "status": "error",
+                    "message": f"Bank details saved but Razorpay setup failed: {str(e)}"
+                }, status=500)
+
             return Response({
                 "status": "success",
-                "message": "Bank details added successfully",
+                "message": "Bank details added and Razorpay contact created successfully",
+                "razorpay": razorpay_ids,
                 "data": serializer.data
             }, status=status.HTTP_201_CREATED)
-        else:
-            return Response({
-                "status": "error",
-                "message": "Validation failed",
-                "errors": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "status": "error",
+            "message": "Validation failed",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class BankDetailsDetailView(APIView):
@@ -979,67 +990,110 @@ class AppointmentServiceDetailView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class PaymentView(APIView):
-    def get(self, request):
-        payments = Payment.objects.all()
-        serializer = PaymentSerializer(payments, many=True)
-        return Response({
-            "status": "success",
-            "message": "Payments retrieved successfully",
-            "data": serializer.data
-        })
+from .razor_order import create_order
+from django.conf import settings
 
-    def post(self, request):
-        serializer = PaymentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
+class InitiatePaymentView(APIView):
+
+    def post(self, request, appointment_id):
+        
+        appointment = get_object_or_404(Appointment, id=appointment_id)
+
+        
+        if appointment.status != Appointment.BookingStatusChoices.Accepted:
+            return Response({"error": "Appointment not approved by vendor."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure amount exists
+        if not appointment.bill_amount:
+            return Response({"error": "Bill amount not set."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Create Razorpay order
+            razorpay_order = create_order(appointment.bill_amount)
+
+            # Save order ID to the appointment
+            appointment.razorpay_order_id = razorpay_order['id']
+            appointment.save()
+
             return Response({
-                "status": "success",
-                "message": "Payment created successfully",
-                "data": serializer.data
+                "order_id": razorpay_order["id"],
+                "amount": razorpay_order["amount"],
+                "currency": razorpay_order["currency"],
+                "razorpay_key_id": settings.RAZORPAY_KEY_ID,
+                "appointment_id": appointment.id,
+                "customer_name": appointment.customer.full_name if appointment.customer else '',
             }, status=status.HTTP_201_CREATED)
-        return Response({
-            "status": "error",
-            "message": "Payment creation failed",
-            "errors": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class PaymentDetailView(APIView):
-    def get(self, request, id):
-        payment = get_object_or_404(Payment, id=id)
-        serializer = PaymentSerializer(payment)
-        return Response({
-            "status": "success",
-            "message": "Payment retrieved successfully",
-            "data": serializer.data
-        })
 
-    def put(self, request, id):
-        payment = get_object_or_404(Payment, id=id)
-        serializer = PaymentSerializer(payment, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                "status": "success",
-                "message": "Payment updated successfully",
-                "data": serializer.data
-            })
-        return Response({
-            "status": "error",
-            "message": "Invalid data",
-            "errors": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, id):
-        payment = get_object_or_404(Payment, id=id)
-        payment.delete()
-        return Response({
-            "status": "success",
-            "message": "Payment deleted successfully"
-        }, status=status.HTTP_200_OK)
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class PaymentView(APIView):
+#     def get(self, request):
+#         payments = Payment.objects.all()
+#         serializer = PaymentSerializer(payments, many=True)
+#         return Response({
+#             "status": "success",
+#             "message": "Payments retrieved successfully",
+#             "data": serializer.data
+#         })
+
+#     def post(self, request):
+#         serializer = PaymentSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({
+#                 "status": "success",
+#                 "message": "Payment created successfully",
+#                 "data": serializer.data
+#             }, status=status.HTTP_201_CREATED)
+#         return Response({
+#             "status": "error",
+#             "message": "Payment creation failed",
+#             "errors": serializer.errors
+#         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# @method_decorator(csrf_exempt, name='dispatch')
+# class PaymentDetailView(APIView):
+#     def get(self, request, id):
+#         payment = get_object_or_404(Payment, id=id)
+#         serializer = PaymentSerializer(payment)
+#         return Response({
+#             "status": "success",
+#             "message": "Payment retrieved successfully",
+#             "data": serializer.data
+#         })
+
+#     def put(self, request, id):
+#         payment = get_object_or_404(Payment, id=id)
+#         serializer = PaymentSerializer(payment, data=request.data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({
+#                 "status": "success",
+#                 "message": "Payment updated successfully",
+#                 "data": serializer.data
+#             })
+#         return Response({
+#             "status": "error",
+#             "message": "Invalid data",
+#             "errors": serializer.errors
+#         }, status=status.HTTP_400_BAD_REQUEST)
+
+#     def delete(self, request, id):
+#         payment = get_object_or_404(Payment, id=id)
+#         payment.delete()
+#         return Response({
+#             "status": "success",
+#             "message": "Payment deleted successfully"
+#         }, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -1414,6 +1468,14 @@ class FilterServicesByGender(APIView):
         return Response(serializer.data)
 
 
+class CustomerAppointmentsView(APIView):
+    def get(self, request, customer_id):
+        appointments = Appointment.objects.filter(
+            customer=customer_id
+        )
+
+        serializer = AppointmentSerializer(appointments, many=True)
+        return Response(serializer.data)
 
 
 class ForgotPasswordAPIView(APIView):
@@ -1555,6 +1617,61 @@ class ResetPasswordUserAPIView(APIView):
 
             return Response({'message': 'Password has been reset successfully.'})
         return Response(serializer.errors, status=400)
+
+
+class StylistAppointmentsView(APIView):
+    def get(self, request, stylist_id):
+        print(Response.__module__)
+        appointments = Appointment.objects.filter(
+            stylist_id=stylist_id
+        ).exclude(
+            status__in=[
+                Appointment.BookingStatusChoices.COMPLETED,
+                Appointment.BookingStatusChoices.CANCELLED
+            ]
+        )
+
+        serializer = AppointmentSerializer(appointments, many=True)
+        return Response(serializer.data)
+
+
+
+class SalonServicesByGenderView(APIView):
+    def get(self, request, salon_id, gender):
+        try:
+            if gender.lower() == "male":
+                gender_filter = ["Male", "Unisex"]
+            elif gender.lower() == "female":
+                gender_filter = ["Female", "Unisex"]
+            else:
+                return Response(
+                    {"error": "Invalid gender value"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            services = SalonServiceAvailability.objects.filter(
+                salon_id=salon_id,
+                service__gender_specific__in=gender_filter
+            )
+
+            serializer = SalonServiceAvailabilitySerializer(services, many=True)
+            return Response(serializer.data)
+
+        except SalonServiceAvailability.DoesNotExist:
+            return Response(
+                {"error": "No services found for this salon and gender"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+
+
+
 
 #SuperAdmin Views
 
@@ -2816,3 +2933,31 @@ def logout_user(request):
     messages.success(request, "You have been logged out.")
     
     return redirect('login')
+    
+
+def payment_page(request, appointment_id):
+    try:
+        appointment = Appointment.objects.get(id=appointment_id)
+    except Appointment.DoesNotExist:
+        return render(request, 'error.html', {"message": "Appointment not found"})
+
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+    amount = int(appointment.bill_amount * 100)  # Convert to paise
+    currency = "INR"
+    order_data = {
+        "amount": amount,
+        "currency": currency,
+        "payment_capture": 1
+    }
+    order = client.order.create(data=order_data)
+
+    context = {
+        "appointment": appointment,
+        "order_id": order['id'],
+        "razorpay_key_id": settings.RAZORPAY_KEY_ID,
+        "amount": amount,
+        "customer_name": appointment.customer.full_name,
+        "callback_url": "/payment/success/"
+    }
+    return render(request, 'admin/razorpay_payment.html', context)

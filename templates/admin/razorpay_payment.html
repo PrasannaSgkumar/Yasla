@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Razorpay Payment</title>
+</head>
+<body>
+    <h2>Hello {{ customer_name }}, pay ₹{{ amount|floatformat:2 }}</h2>
+    <button id="payBtn">Pay with Razorpay</button>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        const options = {
+    "key": "{{ razorpay_key_id }}",
+    "amount": "{{ amount }}",
+    "currency": "INR",
+    "name": "Your Company Name",
+    "description": "Appointment Payment",
+    "order_id": "{{ order_id }}",
+    "handler": function (response) {
+        alert("Payment successful!");
+        console.log(response);
+        // send response.razorpay_payment_id etc. to server
+    },
+    "prefill": {
+        "name": "{{ customer_name }}"
+    },
+    "theme": {
+        "color": "#F37254"
+    },
+    "method": {
+        "upi": true,
+        "card": true,
+        "netbanking": true,
+        "wallet": true,
+        "paylater": true
+    }
+};
+
+        const rzp = new Razorpay(options);
+        document.getElementById('payBtn').onclick = function(e) {
+            rzp.open();
+            e.preventDefault();
+        }
+    </script>
+</body>
+</html>

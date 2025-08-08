@@ -387,6 +387,12 @@ class Appointment(models.Model):
     staff_notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True,blank=True, null=True )
     updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+    razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
+    payment_verified = models.BooleanField(default=False)
+    payment_time = models.DateTimeField(blank=True, null=True)
+    refund_status = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return self.id
@@ -448,58 +454,6 @@ class SalonServiceAvailability(models.Model):
     def __str__(self):
         location = self.branch.branch_name if self.branch else self.salon.salon_name
         return f"{self.service.service_name} @ {location}"
-
-
-
-
-
-
-
-
-
-    
-
-
-
-class Payment(models.Model):
-    class PaymentModeChoices(models.TextChoices):
-        UPI = 'UPI', 'UPI'
-        CARD = 'Card', 'Card'
-        CASH = 'Cash', 'Cash'
-        WALLET = 'Wallet', 'Wallet'
-
-    class PaymentStatusChoices(models.TextChoices):
-        PAID = 'Paid', 'Paid'
-        FAILED = 'Failed', 'Failed'
-        REFUNDED = 'Refunded', 'Refunded'
-  # Payment_ID
-
-    booking = models.ForeignKey('Appointment', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
-    customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
-
-    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    
-    payment_mode = models.CharField(
-        max_length=50,
-        choices=PaymentModeChoices.choices,
-        null=True,
-        blank=True
-    )
-
-    status = models.CharField(
-        max_length=50,
-        choices=PaymentStatusChoices.choices,
-        null=True,
-        blank=True
-    )
-
-    transaction_date = models.DateTimeField(null=True, blank=True)
-    transaction_id = models.CharField(max_length=255, null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.id} - {self.status} - {self.amount}"
-
-
 
 
 class Feedback(models.Model):
@@ -596,3 +550,20 @@ class PasswordResetCodeForUser(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.code}"
+    
+
+class Vendor_Payment(models.Model):
+    salon=models.ForeignKey(Salon, on_delete=models.CASCADE)
+    amount=models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date=models.DateTimeField(auto_now_add=True)
+    week_no=models.IntegerField(null=True, blank=True)
+    week_start_date=models.DateField(null=True, blank=True)
+    week_end_date=models.DateField(null=True, blank=True)
+    transaction_id=models.CharField(max_length=255, null=True, blank=True)
+    payout_done=models.BooleanField(default=False)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    def __str__(self):
+        return f"{self.salon.salon_name} - {self.amount}"
+    
+    

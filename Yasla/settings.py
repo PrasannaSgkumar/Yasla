@@ -175,6 +175,14 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = 'prasannasgkumar@gmail.com'          # your Gmail address
-EMAIL_HOST_PASSWORD = 'bhrv tdxy npnj mtdk'  # NOT your regular password (see below)
+EMAIL_HOST_USER = 'prasannasgkumar@gmail.com'          
+EMAIL_HOST_PASSWORD = 'bhrv tdxy npnj mtdk'  
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+from decouple import config
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET')
+
+
+RAZORPAY_CALLBACK_URL = 'http://127.0.0.1:8000/payment-verify/'
