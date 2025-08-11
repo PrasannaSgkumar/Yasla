@@ -423,7 +423,7 @@ class SalonServiceAvailability(models.Model):
     branch = models.ForeignKey('SalonBranch', on_delete=models.CASCADE, null=True, blank=True, related_name='services_available')
     description=models.TextField(null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-
+    is_avaiable=models.BooleanField(default=False, null=True, blank=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     completion_time = models.DurationField(help_text="Time format: hh:mm:ss (e.g., 00:45:00)")
 
@@ -437,7 +437,7 @@ class SalonServiceAvailability(models.Model):
                     models.Q(salon__isnull=False, branch__isnull=True) |
                     models.Q(salon__isnull=True, branch__isnull=False)
                 ),
-                name="only_one_location",  # Only salon or branch must be provided
+                name="only_one_location",  
             ),
             models.UniqueConstraint(
                 fields=['service', 'salon'],

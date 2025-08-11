@@ -91,9 +91,19 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 
 class AppointmentServiceSerializer(serializers.ModelSerializer):
+    service_name = serializers.CharField(source='service.service_name', read_only=True)  # ✅ declare before Meta
+
     class Meta:
         model = AppointmentService
-        fields = '__all__'
+        fields = [
+            'id', 
+            'appointment', 
+            'service', 
+            'service_name',  # ✅ explicitly listed here
+            'price', 
+            'duration_min'
+        ]
+
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
@@ -155,12 +165,12 @@ class SalonServiceAvailabilitySerializer(serializers.ModelSerializer):
     salon = serializers.StringRelatedField(read_only=True)
     branch = serializers.StringRelatedField(read_only=True)
     service_name = serializers.CharField(source='service.service_name', read_only=True)
-
+    category_name = serializers.CharField(source='service.category.service_category_name', read_only=True)
     class Meta:
         model = SalonServiceAvailability
         fields = [
             'id', 'service', 'service_name', 'salon_id', 'branch_id',
-            'salon', 'branch', 'is_available', 'cost',
+            'salon', 'branch', 'is_avaiable', 'cost', 'category_name',
             'completion_time', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'salon', 'branch', 'service_name']
