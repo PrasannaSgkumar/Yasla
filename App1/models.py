@@ -382,7 +382,6 @@ class Appointment(models.Model):
 
     bill_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
-    # Misc
     customer_message = models.TextField(blank=True, null=True)
     staff_notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True,blank=True, null=True )
@@ -422,8 +421,9 @@ class SalonServiceAvailability(models.Model):
     # Optional link to salon or branch (only one should be filled)
     salon = models.ForeignKey('Salon', on_delete=models.CASCADE, null=True, blank=True, related_name='services_available')
     branch = models.ForeignKey('SalonBranch', on_delete=models.CASCADE, null=True, blank=True, related_name='services_available')
+    description=models.TextField(null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
-    is_available = models.BooleanField(default=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     completion_time = models.DurationField(help_text="Time format: hh:mm:ss (e.g., 00:45:00)")
 

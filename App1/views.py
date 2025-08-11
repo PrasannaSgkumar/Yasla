@@ -754,7 +754,7 @@ class AppointmentView(APIView):
         start_datetime = parse_datetime(data.get('start_datetime'))
       
         
-        # Validate required keys
+       
         if not services_data:
             return Response({"error": "appointment_services is required."}, status=status.HTTP_400_BAD_REQUEST)
         overlapping_appointments = Appointment.objects.filter(
@@ -768,7 +768,7 @@ class AppointmentView(APIView):
                 "error": "Stylist already has an appointment during this time."
             }, status=status.HTTP_409_CONFLICT)
         try:
-            # Parse start time
+            
             start_datetime = parse_datetime(data.get("start_datetime"))
             if not start_datetime:
                 return Response({"error": "Invalid or missing start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
@@ -848,10 +848,13 @@ class AppointmentDetailView(APIView):
         if not start_datetime:
             return Response({"error": "Invalid or missing start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check for overlapping appointments excluding current one
+        duration_minutes = data.get("duration_minutes")
+        if duration_minutes is None:
+            return Response({"error": "duration_minutes is required."}, status=status.HTTP_400_BAD_REQUEST)
         overlapping_appointments = Appointment.objects.filter(
             stylist_id=stylist_id,
-            start_datetime=start_datetime
+            start_datetime__lt=start_datetime + timedelta(minutes=int(duration_minutes)),
+            end_datetime__gt=start_datetime
         ).exclude(id=appointment.id)
 
         if overlapping_appointments.exists():
@@ -861,8 +864,6 @@ class AppointmentDetailView(APIView):
 
         try:
             total_cost = 0
-            total_duration = timedelta()
-
             for service_obj in services_data:
                 service_id = service_obj.get("service")
                 if not service_id:
@@ -881,13 +882,8 @@ class AppointmentDetailView(APIView):
                                     status=status.HTTP_400_BAD_REQUEST)
 
                 total_cost += availability.cost
-                total_duration += availability.completion_time
-
-            # Set computed fields
             data["bill_amount"] = total_cost
-            data["end_datetime"] = start_datetime + total_duration
-
-            # Update appointment
+            data["end_datetime"] = start_datetime + timedelta(minutes=int(duration_minutes))
             serializer = AppointmentSerializer(appointment, data=data, partial=True)
             if serializer.is_valid():
                 updated_appointment = serializer.save()
@@ -914,6 +910,7 @@ class AppointmentDetailView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
