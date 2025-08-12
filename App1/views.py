@@ -1675,7 +1675,7 @@ class SalonsByServiceView(APIView):
     def get(self, request, service_id):
         availability_qs = SalonServiceAvailability.objects.filter(
             service_id=service_id,
-            is_available=True,
+            is_avaiable=True,
             salon__isnull=False  
         ).select_related('salon')
 
