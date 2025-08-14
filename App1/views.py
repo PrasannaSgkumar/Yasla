@@ -835,42 +835,59 @@ class AppointmentDetailView(APIView):
         })
 
     def put(self, request, id):
+
         appointment = get_object_or_404(Appointment, id=id)
         data = request.data.copy()
-        services_data = data.pop("appointment_services", [])
 
-        stylist_id = data.get('stylist')
-        start_datetime = parse_datetime(data.get('start_datetime'))
+        # Extract appointment_services if provided
+        services_data = data.pop("appointment_services", None)
 
-        if not services_data:
-            return Response({"error": "appointment_services is required."}, status=status.HTTP_400_BAD_REQUEST)
+        # Handle start_datetime only if provided
+        start_datetime = None
+        if "start_datetime" in data:
+            start_val = data["start_datetime"]
+            if isinstance(start_val, datetime):
+                start_datetime = start_val
+            elif isinstance(start_val, str):
+                start_datetime = parse_datetime(start_val)
+            if not start_datetime:
+                return Response({"error": "Invalid start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not start_datetime:
-            return Response({"error": "Invalid or missing start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
+        # If duration provided, validate and convert
+        duration_minutes = None
+        if "duration_minutes" in data:
+            try:
+                duration_minutes = int(data["duration_minutes"])
+            except (TypeError, ValueError):
+                return Response({"error": "duration_minutes must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
 
-        duration_minutes = data.get("duration_minutes")
-        if duration_minutes is None:
-            return Response({"error": "duration_minutes is required."}, status=status.HTTP_400_BAD_REQUEST)
-        overlapping_appointments = Appointment.objects.filter(
-            stylist_id=stylist_id,
-            start_datetime__lt=start_datetime + timedelta(minutes=int(duration_minutes)),
-            end_datetime__gt=start_datetime
-        ).exclude(id=appointment.id)
+        # Overlap check only if we have both start_datetime and duration
+        if start_datetime and duration_minutes:
+            stylist_id = data.get('stylist', appointment.stylist_id)
+            overlapping_appointments = Appointment.objects.filter(
+                stylist_id=stylist_id,
+                start_datetime__lt=start_datetime + timedelta(minutes=duration_minutes),
+                end_datetime__gt=start_datetime
+            ).exclude(id=appointment.id)
 
-        if overlapping_appointments.exists():
-            return Response({
-                "error": "Stylist already has an appointment during this time."
-            }, status=status.HTTP_409_CONFLICT)
+            if overlapping_appointments.exists():
+                return Response({
+                    "error": "Stylist already has an appointment during this time."
+                }, status=status.HTTP_409_CONFLICT)
 
-        try:
+        # If services provided, validate and recalc cost
+        if services_data is not None:
+            if not services_data:
+                return Response({"error": "appointment_services cannot be empty."}, status=status.HTTP_400_BAD_REQUEST)
+
             total_cost = 0
             for service_obj in services_data:
                 service_id = service_obj.get("service")
                 if not service_id:
                     return Response({"error": "Missing service ID in appointment_services."}, status=status.HTTP_400_BAD_REQUEST)
 
-                branch = data.get("branch")
-                salon = data.get("salon")
+                branch = data.get("branch", appointment.branch_id)
+                salon = data.get("salon", appointment.salon_id)
 
                 if branch:
                     availability = SalonServiceAvailability.objects.filter(branch=branch, service=service_id).first()
@@ -882,13 +899,20 @@ class AppointmentDetailView(APIView):
                                     status=status.HTTP_400_BAD_REQUEST)
 
                 total_cost += availability.cost
-            data["bill_amount"] = total_cost
-            data["end_datetime"] = start_datetime + timedelta(minutes=int(duration_minutes))
-            serializer = AppointmentSerializer(appointment, data=data, partial=True)
-            if serializer.is_valid():
-                updated_appointment = serializer.save()
 
-                # Remove old services and add new ones
+            data["bill_amount"] = total_cost
+
+        # If we have start_datetime + duration, set end_datetime
+        if start_datetime and duration_minutes:
+            data["end_datetime"] = start_datetime + timedelta(minutes=duration_minutes)
+
+        # Update appointment
+        serializer = AppointmentSerializer(appointment, data=data, partial=True)
+        if serializer.is_valid():
+            updated_appointment = serializer.save()
+
+            # If services provided, replace old ones
+            if services_data is not None:
                 updated_appointment.appointment_services.all().delete()
                 for service_obj in services_data:
                     AppointmentService.objects.create(
@@ -896,20 +920,17 @@ class AppointmentDetailView(APIView):
                         service_id=service_obj["service"]
                     )
 
-                return Response({
-                    "status": "success",
-                    "message": "Appointment updated successfully",
-                    "data": AppointmentSerializer(updated_appointment).data
-                })
-            else:
-                return Response({
-                    "status": "error",
-                    "message": "Validation failed",
-                    "errors": serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({
+                "status": "success",
+                "message": "Appointment updated successfully",
+                "data": AppointmentSerializer(updated_appointment).data
+            })
+        else:
+            return Response({
+                "status": "error",
+                "message": "Validation failed",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -1615,10 +1636,11 @@ class ResetPasswordUserAPIView(APIView):
             return Response({'message': 'Password has been reset successfully.'})
         return Response(serializer.errors, status=400)
 
+from django.utils.dateparse import parse_date
 
 class StylistAppointmentsView(APIView):
     def get(self, request, stylist_id):
-        print(Response.__module__)
+      
         appointments = Appointment.objects.filter(
             stylist_id=stylist_id
         ).exclude(
@@ -1628,8 +1650,20 @@ class StylistAppointmentsView(APIView):
             ]
         )
 
+        # Filter by start date if provided
+        start_date_str = request.query_params.get("start_date")
+        if start_date_str:
+            start_date_obj = parse_date(start_date_str)
+            if not start_date_obj:
+                return Response(
+                    {"error": "Invalid start_date format. Use YYYY-MM-DD."},
+                    status=400
+                )
+            appointments = appointments.filter(start_datetime__date=start_date_obj)
+
         serializer = AppointmentSerializer(appointments, many=True)
         return Response(serializer.data)
+
 
 
 
