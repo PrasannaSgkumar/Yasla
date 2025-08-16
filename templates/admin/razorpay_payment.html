@@ -52,7 +52,7 @@
         .then(r => r.json())
         .then(d => {
           if (d.message === "Payment Successful!") {
-            window.location.href = "/payment-success/";
+            alert("✅ Payment Successful!");
           } else {
             document.getElementById("msg").textContent = d.message || "Payment verification failed.";
             console.warn("verify response:", d);

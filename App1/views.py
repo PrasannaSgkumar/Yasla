@@ -3090,24 +3090,58 @@ def payment_page(request, appointment_id):
 
 
 
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.conf import settings
+import razorpay
+
+from .models import Appointment
+
+from typing import Optional
+
+def _map_method_to_mode(method: str) -> Optional[str]:
+   
+    if not method:
+        return None
+    m = method.lower()
+    if m == "upi":
+        return Appointment.PaymentModeChoices.UPI
+    if m == "card":
+        return Appointment.PaymentModeChoices.CARD
+    if m == "wallet":
+        return Appointment.PaymentModeChoices.WALLET
+    # 'netbanking' / others are not in your choices; return None to leave unchanged
+    return None
+
+
+
 @csrf_exempt
 def payment_verify(request):
     """
-    Verifies Razorpay signature and marks appointment as paid.
+    Verifies Razorpay signature, confirms capture, and updates Appointment.
+    Saves:
+      - razorpay_payment_id
+      - razorpay_signature
+      - payment_verified
+      - payment_time
+      - payment_status ('Paid')
+      - payment_mode (from Razorpay method)
+      - refund_status (if present)
     """
     if request.method != "POST":
         return JsonResponse({"message": "Invalid method"}, status=405)
 
     payment_id = request.POST.get("razorpay_payment_id")
-    order_id = request.POST.get("razorpay_order_id")
-    signature = request.POST.get("razorpay_signature")
+    order_id   = request.POST.get("razorpay_order_id")
+    signature  = request.POST.get("razorpay_signature")
 
     if not (payment_id and order_id and signature):
         return JsonResponse({"message": "Missing payment details"}, status=400)
 
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-    # Verify signature
+    # 1) Verify HMAC signature
     try:
         client.utility.verify_payment_signature(
             {
@@ -3117,26 +3151,83 @@ def payment_verify(request):
             }
         )
     except razorpay.errors.SignatureVerificationError as e:
+        # Persist what we can for audit/debug
+        try:
+            appt = Appointment.objects.get(razorpay_order_id=order_id)
+            appt.razorpay_payment_id = payment_id
+            appt.razorpay_signature = signature
+            appt.payment_verified = False
+            appt.payment_status = Appointment.PaymentStatusChoices.UNPAID
+            appt.save(update_fields=[
+                "razorpay_payment_id", "razorpay_signature", "payment_verified", "payment_status"
+            ])
+        except Appointment.DoesNotExist:
+            pass
         return JsonResponse({"message": f"Signature verification failed: {e}"}, status=400)
 
-    # Optional: confirm captured status
+    # 2) Fetch payment to confirm capture + get details
     try:
         payment = client.payment.fetch(payment_id)
     except Exception as e:
         return JsonResponse({"message": f"Unable to fetch payment: {e}"}, status=400)
 
-    if payment.get("status") != "captured":
-        return JsonResponse({"message": f"Payment not captured (status={payment.get('status')})"}, status=400)
+    status = payment.get("status")  # 'created' | 'authorized' | 'captured' | 'failed' | 'refunded' | ...
+    method = payment.get("method")  # upi/card/netbanking/wallet/emi
+    refund_status = payment.get("refund_status")  # None | 'partial' | 'full'
 
+    if status != "captured":
+        # Save identifiers even on failure
+        try:
+            appt = Appointment.objects.get(razorpay_order_id=order_id)
+            appt.razorpay_payment_id = payment_id
+            appt.razorpay_signature = signature
+            appt.payment_verified = False
+            appt.payment_status = Appointment.PaymentStatusChoices.UNPAID
+            appt.payment_mode = _map_method_to_mode(method)
+            appt.refund_status = refund_status or ""
+            appt.save(update_fields=[
+                "razorpay_payment_id", "razorpay_signature", "payment_verified",
+                "payment_status", "payment_mode", "refund_status"
+            ])
+        except Appointment.DoesNotExist:
+            return JsonResponse({"message": "Appointment not found for this order"}, status=404)
+
+        return JsonResponse({"message": f"Payment not captured (status={status})"}, status=400)
+
+    # 3) Mark appointment Paid
     try:
         appt = Appointment.objects.get(razorpay_order_id=order_id)
     except Appointment.DoesNotExist:
         return JsonResponse({"message": "Appointment not found for this order"}, status=404)
 
-    appt.payment_status = "Completed"
-    appt.save(update_fields=["payment_status"])
+    # Prefer payment['captured_at'] (epoch seconds) if available
+    captured_at = payment.get("captured_at")
+    if captured_at:
+        try:
+            from datetime import datetime
+            payment_time = datetime.fromtimestamp(int(captured_at), tz=timezone.utc)
+        except Exception:
+            payment_time = timezone.now()
+    else:
+        payment_time = timezone.now()
+
+    appt.razorpay_payment_id = payment_id
+    appt.razorpay_signature = signature
+    appt.payment_verified = True
+    appt.payment_time = payment_time
+    appt.payment_status = Appointment.PaymentStatusChoices.PAID
+    mapped_mode = _map_method_to_mode(method)
+    if mapped_mode:
+        appt.payment_mode = mapped_mode
+    appt.refund_status = refund_status or ""
+
+    appt.save(update_fields=[
+        "razorpay_payment_id", "razorpay_signature", "payment_verified",
+        "payment_time", "payment_status", "payment_mode", "refund_status"
+    ])
 
     return JsonResponse({"message": "Payment Successful!"}, status=200)
+
 
 
 
