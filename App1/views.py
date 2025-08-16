@@ -3035,85 +3035,112 @@ def logout_user(request):
     
     return redirect('login')
     
-
+# views.py
+from django.shortcuts import render, redirect
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from django.utils import timezone
+import razorpay
+
+from .models import Appointment  # Ensure this model has: bill_amount, customer, razorpay_order_id, payment_status
 
 def payment_page(request, appointment_id):
     try:
-        appointment = Appointment.objects.get(id=appointment_id)
+        appt = Appointment.objects.select_related("customer").get(id=appointment_id)
     except Appointment.DoesNotExist:
-        return render(request, 'error.html', {"message": "Appointment not found"})
+        return render(request, "error.html", {"message": "Appointment not found"})
+
+    amount_paise = int(round(float(appt.bill_amount) * 100))
 
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-    amount = int(appointment.bill_amount * 100)  # Convert to paise
-    currency = "INR"
-    
-    # Data for Razorpay order creation
-    order_data = {
-        "amount": amount,
-        "currency": currency,
-        "payment_capture": 1
-    }
+    receipt = f"appt-{appointment_id}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
 
-    try:
-        order = client.order.create(data=order_data)
-    except razorpay.errors.BadRequestError as e:
-        # Print the error message for debugging
-        print("Error creating order:", e)
-   
-    
+    order = client.order.create(
+        {
+            "amount": amount_paise,
+            "currency": "INR",
+            "payment_capture": 1,
+            "receipt": receipt,
+            "notes": {
+                "appointment_id": str(appointment_id),
+                "customer_name": getattr(appt.customer, "full_name", "") or "",
+                "customer_email": getattr(appt.customer, "email", "") or "",
+                # 👇 force the mobile number you provided
+                "customer_phone": "8296061293",
+            },
+        }
+    )
+
+    appt.razorpay_order_id = order["id"]
+    appt.save(update_fields=["razorpay_order_id"])
+
     context = {
-        "appointment": appointment,
-        "order_id": order['id'],
+        "order_id": order["id"],
         "razorpay_key_id": settings.RAZORPAY_KEY_ID,
-        "amount": amount,
-        "customer_name": appointment.customer.full_name,
-        "callback_url": settings.RAZORPAY_CALLBACK_URL
+        "amount_paise": amount_paise,
+        "amount_rupees": appt.bill_amount,
+        "customer_name": getattr(appt.customer, "full_name", "") or "Customer",
+        "customer_email": getattr(appt.customer, "email", "") or "",
+        # 👇 force number into template too
+        "customer_contact": "8296061293",
     }
-
-    return render(request, 'admin/razorpay_payment.html', context)
-
+    return render(request, "admin/razorpay_payment.html", context)
 
 
 
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from rest_framework import status
-import razorpay
-from django.conf import settings
-from .models import Appointment
-from django.http import JsonResponse
-import razorpay
-from django.conf import settings
-from .models import Appointment
-
+@csrf_exempt
 def payment_verify(request):
-    payment_id = request.GET.get('payment_id')
-    order_id = request.GET.get('order_id')
+    """
+    Verifies Razorpay signature and marks appointment as paid.
+    """
+    if request.method != "POST":
+        return JsonResponse({"message": "Invalid method"}, status=405)
 
-    if not payment_id or not order_id:
-        return JsonResponse({"message": "Invalid payment details."}, status=400)
+    payment_id = request.POST.get("razorpay_payment_id")
+    order_id = request.POST.get("razorpay_order_id")
+    signature = request.POST.get("razorpay_signature")
+
+    if not (payment_id and order_id and signature):
+        return JsonResponse({"message": "Missing payment details"}, status=400)
 
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
+    # Verify signature
+    try:
+        client.utility.verify_payment_signature(
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": signature,
+            }
+        )
+    except razorpay.errors.SignatureVerificationError as e:
+        return JsonResponse({"message": f"Signature verification failed: {e}"}, status=400)
+
+    # Optional: confirm captured status
     try:
         payment = client.payment.fetch(payment_id)
-    except razorpay.errors.RazorpayError as e:
-        return JsonResponse({"message": f"Payment verification failed: {str(e)}"}, status=400)
+    except Exception as e:
+        return JsonResponse({"message": f"Unable to fetch payment: {e}"}, status=400)
 
-    if payment['status'] == 'captured':
-        try:
-            # Find the appointment using the order_id
-            appointment = Appointment.objects.get(order_id=order_id)
-            appointment.payment_status = 'Completed'
-            appointment.save()
+    if payment.get("status") != "captured":
+        return JsonResponse({"message": f"Payment not captured (status={payment.get('status')})"}, status=400)
 
-            return JsonResponse({"message": "Payment Successful!"}, status=200)
-        except Appointment.DoesNotExist:
-            return JsonResponse({"message": "Appointment not found."}, status=404)
-    else:
-        return JsonResponse({"message": "Payment Failed"}, status=400)
+    try:
+        appt = Appointment.objects.get(razorpay_order_id=order_id)
+    except Appointment.DoesNotExist:
+        return JsonResponse({"message": "Appointment not found for this order"}, status=404)
+
+    appt.payment_status = "Completed"
+    appt.save(update_fields=["payment_status"])
+
+    return JsonResponse({"message": "Payment Successful!"}, status=200)
+
+
+
+
 
 
 

@@ -1,62 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Razorpay Payment</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Razorpay Payment</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    button { padding: 10px 16px; border: 0; border-radius: 8px; cursor: pointer; }
+    #payBtn { background: #f37254; color: #fff; }
+    .note { margin-top: 12px; color: #555; font-size: 14px; }
+    pre { background: #f6f8fa; padding: 12px; border-radius: 8px; overflow: auto; }
+  </style>
 </head>
 <body>
-    <h2>Hello {{ customer_name }}, pay ₹{{ amount|floatformat:2 }}</h2>
+  <div class="wrap">
+    <h2>Pay ₹{{ amount_rupees|floatformat:2 }}</h2>
     <button id="payBtn">Pay with Razorpay</button>
 
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script>
-        // Service Worker Registration
-       if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/service-worker.js')
-        .then(function(registration) {
-            console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch(function(error) {
-            console.log('Service Worker registration failed:', error);
+    <p class="note" id="msg"></p>
+    <pre id="failDump" style="display:none"></pre>
+  </div>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    const options = {
+      key: "{{ razorpay_key_id }}",
+      amount: "{{ amount_paise }}",   // in paise
+      currency: "INR",
+      order_id: "{{ order_id }}",
+      name: "Payment",
+      description: "Appointment Payment",
+      prefill: {
+        name: "{{ customer_name }}",
+        email: "{{ customer_email }}",
+        contact: "{{ customer_contact }}"
+      },
+      theme: { color: "#F37254" },
+      handler: function (response) {
+        const data = new URLSearchParams({
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature
         });
-}
 
-        // Razorpay Integration
-        var options = {
-            "key": "{{ razorpay_key_id }}",  // Razorpay Key ID
-            "amount": "{{ amount }}",  // Amount in paise (1000 = ₹10)
-            "currency": "INR",
-            "order_id": "{{ order_id }}",  // The order_id you generated
-            "handler": function (response) {
-                var payment_id = response.razorpay_payment_id;  // This is the payment_id
-                var order_id = response.razorpay_order_id;      // This is the order_id
+        fetch("/payment-verify/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: data.toString()
+        })
+        .then(r => r.json())
+        .then(d => {
+          if (d.message === "Payment Successful!") {
+            window.location.href = "/payment-success/";
+          } else {
+            document.getElementById("msg").textContent = d.message || "Payment verification failed.";
+            console.warn("verify response:", d);
+          }
+        })
+        .catch((e) => {
+          document.getElementById("msg").textContent = "Verification request failed.";
+          console.error(e);
+        });
+      }
+    };
 
-                // Send payment_id and order_id to your backend for verification
-                fetch(`/payment-verify/?payment_id=${payment_id}&order_id=${order_id}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(data);
-                        if (data.message === 'Payment Successful!') {
-                            alert('Payment Successful!');
-                            // Optionally, redirect to a success page or display a success message
-                            window.location.href = "/payment-success/";  // Redirect to a success page
-                        } else {
-                            alert('Payment Failed');
-                        }
-                    });
-            },
-            "prefill": {
-                "email": "{{ customer_email }}",  // Customer's email
-                "contact": "{{ customer_contact }}"  // Customer's contact
-            },
-            "theme": {
-                "color": "#F37254"
-            }
-        };
+    const rzp = new Razorpay(options);
 
-        var rzp1 = new Razorpay(options);
-        rzp1.open();
-    </script>
+    // 🔎 CRITICAL: capture precise failure details from Checkout (LIVE useful)
+    rzp.on('payment.failed', function (resp) {
+      const err = resp && resp.error ? resp.error : {};
+      const details = {
+        code: err.code,
+        description: err.description,
+        source: err.source,
+        step: err.step,
+        reason: err.reason,
+        metadata: err.metadata
+      };
+      const msg = (err.description || err.reason || "Payment failed.") +
+                  (details.code ? ` [${details.code}]` : "");
+      document.getElementById("msg").textContent = msg;
+      const dump = document.getElementById("failDump");
+      dump.style.display = "block";
+      dump.textContent = JSON.stringify(details, null, 2);
+      console.error("payment.failed:", details);
+    });
+
+    document.getElementById("payBtn").addEventListener("click", function (e) {
+      e.preventDefault();
+      rzp.open();
+    });
+  </script>
 </body>
 </html>

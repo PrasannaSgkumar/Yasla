@@ -5,7 +5,8 @@ urlpatterns = [
 
     path('salons/', SalonView.as_view(), name='salon-list-create'),
     path('salons/<int:id>/', SalonDetailView.as_view(), name='salon-detail'),
-    path('payment-verify/', PaymentVerifyView.as_view(), name='payment_verify'),
+    # path('payment-verify/', PaymentVerifyView.as_view(), name='payment_verify'),
+    path("payment-verify/", payment_verify, name="payment_verify"),
     # Salon Branch URLs
     path('salon-branches/', SalonBranchView.as_view(), name='salon-branch-list-create'),
     path('salon-branches/<int:id>/', SalonBranchDetailView.as_view(), name='salon-branch-detail'),
