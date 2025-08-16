@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Razorpay Payment</title>
 </head>
 <body>
@@ -9,38 +11,52 @@
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
-        const options = {
-    "key": "{{ razorpay_key_id }}",
-    "amount": "{{ amount }}",
-    "currency": "INR",
-    "name": "Your Company Name",
-    "description": "Appointment Payment",
-    "order_id": "{{ order_id }}",
-    "handler": function (response) {
-        alert("Payment successful!");
-        console.log(response);
-        // send response.razorpay_payment_id etc. to server
-    },
-    "prefill": {
-        "name": "{{ customer_name }}"
-    },
-    "theme": {
-        "color": "#F37254"
-    },
-    "method": {
-        "upi": true,
-        "card": true,
-        "netbanking": true,
-        "wallet": true,
-        "paylater": true
-    }
-};
+        // Service Worker Registration
+       if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/service-worker.js')
+        .then(function(registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(function(error) {
+            console.log('Service Worker registration failed:', error);
+        });
+}
 
-        const rzp = new Razorpay(options);
-        document.getElementById('payBtn').onclick = function(e) {
-            rzp.open();
-            e.preventDefault();
-        }
+        // Razorpay Integration
+        var options = {
+            "key": "{{ razorpay_key_id }}",  // Razorpay Key ID
+            "amount": "{{ amount }}",  // Amount in paise (1000 = ₹10)
+            "currency": "INR",
+            "order_id": "{{ order_id }}",  // The order_id you generated
+            "handler": function (response) {
+                var payment_id = response.razorpay_payment_id;  // This is the payment_id
+                var order_id = response.razorpay_order_id;      // This is the order_id
+
+                // Send payment_id and order_id to your backend for verification
+                fetch(`/payment-verify/?payment_id=${payment_id}&order_id=${order_id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+                        if (data.message === 'Payment Successful!') {
+                            alert('Payment Successful!');
+                            // Optionally, redirect to a success page or display a success message
+                            window.location.href = "/payment-success/";  // Redirect to a success page
+                        } else {
+                            alert('Payment Failed');
+                        }
+                    });
+            },
+            "prefill": {
+                "email": "{{ customer_email }}",  // Customer's email
+                "contact": "{{ customer_contact }}"  // Customer's contact
+            },
+            "theme": {
+                "color": "#F37254"
+            }
+        };
+
+        var rzp1 = new Razorpay(options);
+        rzp1.open();
     </script>
 </body>
 </html>

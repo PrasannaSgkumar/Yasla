@@ -720,6 +720,8 @@ def send_appointment_update(appointment):
         )
 
 
+from datetime import datetime, timedelta
+from django.utils.dateparse import parse_datetime
 
 
 
@@ -835,25 +837,22 @@ class AppointmentDetailView(APIView):
         })
 
     def put(self, request, id):
-
         appointment = get_object_or_404(Appointment, id=id)
         data = request.data.copy()
-
-        # Extract appointment_services if provided
         services_data = data.pop("appointment_services", None)
-
-        # Handle start_datetime only if provided
-        start_datetime = None
+        start_datetime = appointment.start_datetime  
         if "start_datetime" in data:
             start_val = data["start_datetime"]
             if isinstance(start_val, datetime):
                 start_datetime = start_val
             elif isinstance(start_val, str):
-                start_datetime = parse_datetime(start_val)
-            if not start_datetime:
-                return Response({"error": "Invalid start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
+                parsed = parse_datetime(start_val)
+                if parsed:
+                    start_datetime = parsed
+                else:
+                    return Response({"error": "Invalid start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # If duration provided, validate and convert
+        # Handle duration
         duration_minutes = None
         if "duration_minutes" in data:
             try:
@@ -861,12 +860,17 @@ class AppointmentDetailView(APIView):
             except (TypeError, ValueError):
                 return Response({"error": "duration_minutes must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Overlap check only if we have both start_datetime and duration
+       
+        end_datetime = appointment.end_datetime  
+        if start_datetime and duration_minutes:
+            end_datetime = start_datetime + timedelta(minutes=duration_minutes)
+
+        # Overlap check only if both are new values
         if start_datetime and duration_minutes:
             stylist_id = data.get('stylist', appointment.stylist_id)
             overlapping_appointments = Appointment.objects.filter(
                 stylist_id=stylist_id,
-                start_datetime__lt=start_datetime + timedelta(minutes=duration_minutes),
+                start_datetime__lt=end_datetime,
                 end_datetime__gt=start_datetime
             ).exclude(id=appointment.id)
 
@@ -902,16 +906,16 @@ class AppointmentDetailView(APIView):
 
             data["bill_amount"] = total_cost
 
-        # If we have start_datetime + duration, set end_datetime
-        if start_datetime and duration_minutes:
-            data["end_datetime"] = start_datetime + timedelta(minutes=duration_minutes)
+        # Ensure updated times are included in data
+        data["start_datetime"] = start_datetime
+        data["end_datetime"] = end_datetime
 
         # Update appointment
         serializer = AppointmentSerializer(appointment, data=data, partial=True)
         if serializer.is_valid():
             updated_appointment = serializer.save()
 
-            # If services provided, replace old ones
+            # Replace services if new ones provided
             if services_data is not None:
                 updated_appointment.appointment_services.all().delete()
                 for service_obj in services_data:
@@ -1048,6 +1052,47 @@ class InitiatePaymentView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+import razorpay
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from razorpay.errors import SignatureVerificationError
+from .models import Appointment
+
+client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+class PaymentVerifyView(APIView):
+    def post(self, request):
+        try:
+            razorpay_order_id = request.data.get("razorpay_order_id")
+            razorpay_payment_id = request.data.get("razorpay_payment_id")
+            razorpay_signature = request.data.get("razorpay_signature")
+
+            # Verify payment signature
+            params_dict = {
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': razorpay_payment_id,
+             
+            }
+            client.utility.verify_payment_signature(params_dict)
+
+            # Fetch payment details to confirm status
+            payment = client.payment.fetch(razorpay_payment_id)
+
+            if payment.get("status") == "captured":
+                # Update appointment
+                appointment = Appointment.objects.get(razorpay_order_id=razorpay_order_id)
+                appointment.payment_status = Appointment.PaymentStatusChoices.PAID
+                appointment.save()
+                return Response({"message": "Payment successful"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Payment not captured"}, status=status.HTTP_400_BAD_REQUEST)
+
+        except SignatureVerificationError:
+            return Response({"error": "Invalid payment signature"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
@@ -2991,6 +3036,8 @@ def logout_user(request):
     return redirect('login')
     
 
+from django.conf import settings
+
 def payment_page(request, appointment_id):
     try:
         appointment = Appointment.objects.get(id=appointment_id)
@@ -3001,19 +3048,78 @@ def payment_page(request, appointment_id):
 
     amount = int(appointment.bill_amount * 100)  # Convert to paise
     currency = "INR"
+    
+    # Data for Razorpay order creation
     order_data = {
         "amount": amount,
         "currency": currency,
         "payment_capture": 1
     }
-    order = client.order.create(data=order_data)
 
+    try:
+        order = client.order.create(data=order_data)
+    except razorpay.errors.BadRequestError as e:
+        # Print the error message for debugging
+        print("Error creating order:", e)
+   
+    
     context = {
         "appointment": appointment,
         "order_id": order['id'],
         "razorpay_key_id": settings.RAZORPAY_KEY_ID,
         "amount": amount,
         "customer_name": appointment.customer.full_name,
-        "callback_url": "/payment/success/"
+        "callback_url": settings.RAZORPAY_CALLBACK_URL
     }
+
     return render(request, 'admin/razorpay_payment.html', context)
+
+
+
+
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from rest_framework import status
+import razorpay
+from django.conf import settings
+from .models import Appointment
+from django.http import JsonResponse
+import razorpay
+from django.conf import settings
+from .models import Appointment
+
+def payment_verify(request):
+    payment_id = request.GET.get('payment_id')
+    order_id = request.GET.get('order_id')
+
+    if not payment_id or not order_id:
+        return JsonResponse({"message": "Invalid payment details."}, status=400)
+
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+    try:
+        payment = client.payment.fetch(payment_id)
+    except razorpay.errors.RazorpayError as e:
+        return JsonResponse({"message": f"Payment verification failed: {str(e)}"}, status=400)
+
+    if payment['status'] == 'captured':
+        try:
+            # Find the appointment using the order_id
+            appointment = Appointment.objects.get(order_id=order_id)
+            appointment.payment_status = 'Completed'
+            appointment.save()
+
+            return JsonResponse({"message": "Payment Successful!"}, status=200)
+        except Appointment.DoesNotExist:
+            return JsonResponse({"message": "Appointment not found."}, status=404)
+    else:
+        return JsonResponse({"message": "Payment Failed"}, status=400)
+
+
+
+
+# views.py
+from django.shortcuts import render
+
+def home(request):
+    return render(request, 'index.html')

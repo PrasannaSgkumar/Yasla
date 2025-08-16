@@ -1,0 +1,18 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Django Website</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+    <h1>Welcome to My Website</h1>
+    <button id="payBtn">Pay with Razorpay</button>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="{% static 'scripts.js' %}"></script>
+</body>
+</html>

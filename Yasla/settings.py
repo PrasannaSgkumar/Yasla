@@ -48,6 +48,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -55,7 +56,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'Yasla.urls'
@@ -138,7 +139,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -188,3 +189,18 @@ RAZORPAYX_ACCOUNT_NUMBER = config("RAZORPAYX_ACCOUNT_NUMBER")
 RAZORPAYX_PAYOUT_MODE = config("RAZORPAYX_PAYOUT_MODE", default="IMPS")
 
 RAZORPAY_CALLBACK_URL = 'http://127.0.0.1:8000/payment-verify/'
+
+
+
+
+# If using Django with django-cors-headers
+CORS_ALLOW_HEADERS = [
+    'x-rtb-fingerprint-id',  # Allow this header
+    'content-type',
+    'authorization',
+    'accept',
+    'origin',
+]
+
+# Allow all origins or configure specific origins (change accordingly)
+CORS_ALLOW_ALL_ORIGINS = True

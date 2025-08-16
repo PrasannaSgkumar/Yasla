@@ -248,7 +248,7 @@ class User(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     branches = models.ManyToManyField(SalonBranch, related_name='users', blank=True)
-    
+    fcm_token=models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.full_name} - {self.user_role}"
@@ -281,6 +281,7 @@ class Customer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_login = models.DateTimeField(null=True, blank=True)
+    fcm_token=models.TextField(null=True, blank=True)
 
     def __str__(self):
         return self.full_name
@@ -348,7 +349,7 @@ class Appointment(models.Model):
     # Appointment Timing
     start_datetime = models.DateTimeField(null=True, blank=True)
     end_datetime   = models.DateTimeField(null=True, blank=True)
-
+    duration=models.DurationField(null=True, blank=True)
 
 
     # Status & Payment Info

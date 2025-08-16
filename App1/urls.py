@@ -5,7 +5,7 @@ urlpatterns = [
 
     path('salons/', SalonView.as_view(), name='salon-list-create'),
     path('salons/<int:id>/', SalonDetailView.as_view(), name='salon-detail'),
-
+    path('payment-verify/', PaymentVerifyView.as_view(), name='payment_verify'),
     # Salon Branch URLs
     path('salon-branches/', SalonBranchView.as_view(), name='salon-branch-list-create'),
     path('salon-branches/<int:id>/', SalonBranchDetailView.as_view(), name='salon-branch-detail'),
@@ -48,6 +48,7 @@ urlpatterns = [
     path('payment/initiate/<int:appointment_id>/', InitiatePaymentView.as_view(), name='initiate-payment'),
     path('appointments/stylist/<int:stylist_id>/',StylistAppointmentsView.as_view(), name='stylist-appointments' ),
     path('appointments/customer/<int:customer_id>/',CustomerAppointmentsView.as_view(),name='customer-appointments'),
+    
     # Feedback URLs
     path('feedbacks/', FeedbackView.as_view(), name='feedback-list-create'),
     path('feedbacks/<int:id>/', FeedbackDetailView.as_view(), name='feedback-detail'),
@@ -129,5 +130,6 @@ urlpatterns = [
     path('booking/view/<int:id>/', view_appointment, name='view_appointment'),
     path('logout/', logout_user, name='logout'),
     path('pay/<int:appointment_id>/', payment_page, name='payment_page'),
+    path('', home, name='home'),
 
 ]
