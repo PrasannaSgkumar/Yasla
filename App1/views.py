@@ -1695,11 +1695,6 @@ class StylistAppointmentsView(APIView):
       
         appointments = Appointment.objects.filter(
             stylist_id=stylist_id
-        ).exclude(
-            status__in=[
-                Appointment.BookingStatusChoices.COMPLETED,
-                Appointment.BookingStatusChoices.CANCELLED
-            ]
         )
 
         # Filter by start date if provided

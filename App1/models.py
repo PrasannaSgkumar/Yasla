@@ -142,7 +142,7 @@ class Salon(models.Model):
     salon_status = models.CharField(
         max_length=10,
         choices=SalonStatusChoices.choices,
-        default=SalonStatusChoices.OFFLINE  # Default is now Offline
+        default=SalonStatusChoices.OFFLINE  
     )
 
     def __str__(self):
