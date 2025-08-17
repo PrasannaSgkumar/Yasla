@@ -778,7 +778,7 @@ class AppointmentView(APIView):
             # Calculate total cost and duration
             total_cost = 0
             total_duration = timedelta()
-
+            service_availabilities = {}
             for service_obj in services_data:
                 service_id = service_obj.get("service")
                 if not service_id:
@@ -798,6 +798,7 @@ class AppointmentView(APIView):
 
                 total_cost += availability.cost
                 total_duration += availability.completion_time
+                service_availabilities[service_id] = availability
 
             # Set computed values
             data["bill_amount"] = total_cost
@@ -811,9 +812,15 @@ class AppointmentView(APIView):
 
                 # Save appointment services
                 for service_obj in services_data:
+                    service_id = service_obj["service"]
+                    availability = service_availabilities[service_id]
+                    print(int(availability.completion_time.total_seconds() // 60))
                     AppointmentService.objects.create(
                         appointment=appointment,
-                        service_id=service_obj["service"]
+                        service_id=service_id,
+                        price=availability.cost,
+                        duration_min = int(availability.completion_time.total_seconds() // 60)
+
                     )
 
                 return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
@@ -3111,24 +3118,13 @@ def _map_method_to_mode(method: str) -> Optional[str]:
         return Appointment.PaymentModeChoices.CARD
     if m == "wallet":
         return Appointment.PaymentModeChoices.WALLET
-    # 'netbanking' / others are not in your choices; return None to leave unchanged
     return None
 
 
 
 @csrf_exempt
 def payment_verify(request):
-    """
-    Verifies Razorpay signature, confirms capture, and updates Appointment.
-    Saves:
-      - razorpay_payment_id
-      - razorpay_signature
-      - payment_verified
-      - payment_time
-      - payment_status ('Paid')
-      - payment_mode (from Razorpay method)
-      - refund_status (if present)
-    """
+    
     if request.method != "POST":
         return JsonResponse({"message": "Invalid method"}, status=405)
 
@@ -3140,8 +3136,6 @@ def payment_verify(request):
         return JsonResponse({"message": "Missing payment details"}, status=400)
 
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-
-    # 1) Verify HMAC signature
     try:
         client.utility.verify_payment_signature(
             {
@@ -3176,7 +3170,7 @@ def payment_verify(request):
     refund_status = payment.get("refund_status")  # None | 'partial' | 'full'
 
     if status != "captured":
-        # Save identifiers even on failure
+       
         try:
             appt = Appointment.objects.get(razorpay_order_id=order_id)
             appt.razorpay_payment_id = payment_id

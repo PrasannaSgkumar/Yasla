@@ -175,16 +175,7 @@ class SalonServiceAvailabilitySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'salon', 'branch', 'service_name']
 
-    def validate(self, data):
-        salon = data.get('salon_id')
-        branch = data.get('branch_id')
-
-        if not salon and not branch:
-            raise serializers.ValidationError("Either 'salon_id' or 'branch_id' must be provided.")
-        if salon and branch:
-            raise serializers.ValidationError("Provide only one: either 'salon_id' or 'branch_id', not both.")
-
-        return data
+    
 
     def create(self, validated_data):
         salon_id = validated_data.pop('salon_id', None)

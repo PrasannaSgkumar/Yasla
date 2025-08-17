@@ -265,7 +265,7 @@ class Command(BaseCommand):
 
         print(f"Today's date: {today}, is_wednesday: {is_wednesday}")
 
-        # If it's not Wednesday and --force is not provided, do not proceed
+       
         if not (is_wednesday or opts["force"]):
             self.stdout.write(self.style.WARNING("Not Wednesday. Use --force to run anyway."))
             return
