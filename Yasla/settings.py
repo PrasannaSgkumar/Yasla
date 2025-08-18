@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'drf_yasg',
     'channels',
+    "django_extensions",
 
 ]
 

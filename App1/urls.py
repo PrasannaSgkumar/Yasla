@@ -2,12 +2,13 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
-
+    path('initiate/payment/<int:appointment_id>/', PaymentInitiateAPI.as_view(), name="payment_initiate"),
+    path("payment/verify/", PaymentVerifyAPI.as_view(), name="payment_verify"),
     path('salons/', SalonView.as_view(), name='salon-list-create'),
     path('salons/<int:id>/', SalonDetailView.as_view(), name='salon-detail'),
     # path('payment-verify/', PaymentVerifyView.as_view(), name='payment_verify'),
     path("payment-verify/", payment_verify, name="payment_verify"),
-    # Salon Branch URLs
+    # Salon Branch U
     path('salon-branches/', SalonBranchView.as_view(), name='salon-branch-list-create'),
     path('salon-branches/<int:id>/', SalonBranchDetailView.as_view(), name='salon-branch-detail'),
 
@@ -46,7 +47,7 @@ urlpatterns = [
     # Payment URLs
     # path('payments/', PaymentView.as_view(), name='payment-list-create'),
     # path('payments/<int:id>/', PaymentDetailView.as_view(), name='payment-detail'),
-    path('payment/initiate/<int:appointment_id>/', InitiatePaymentView.as_view(), name='initiate-payment'),
+    
     path('appointments/stylist/<int:stylist_id>/',StylistAppointmentsView.as_view(), name='stylist-appointments' ),
     path('appointments/customer/<int:customer_id>/',CustomerAppointmentsView.as_view(),name='customer-appointments'),
     
@@ -132,5 +133,6 @@ urlpatterns = [
     path('logout/', logout_user, name='logout'),
     path('pay/<int:appointment_id>/', payment_page, name='payment_page'),
     path('', home, name='home'),
+    
 
 ]

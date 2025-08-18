@@ -393,7 +393,8 @@ class Appointment(models.Model):
     payment_verified = models.BooleanField(default=False)
     payment_time = models.DateTimeField(blank=True, null=True)
     refund_status = models.CharField(max_length=50, blank=True, null=True)
-
+    otp_code=models.CharField(max_length=100, blank=True, null=True)
+    
     def __str__(self):
         return self.id
     
