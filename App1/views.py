@@ -803,6 +803,8 @@ class AppointmentView(APIView):
             # Set computed values
             data["bill_amount"] = total_cost
             data["end_datetime"] = start_datetime + total_duration
+            otp_code = str(random.randint(1000, 9999))
+            data["otp_code"] = otp_code
 
             # Serialize and save
             serializer = AppointmentSerializer(data=data)
