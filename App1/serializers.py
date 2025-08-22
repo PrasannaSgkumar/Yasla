@@ -4,10 +4,12 @@ from .models import *
 class UserLoginSerializer(serializers.Serializer):
     phone = serializers.CharField() 
     password = serializers.CharField(write_only=True)
+    fcm_token = serializers.CharField(required=False, allow_blank=True)
 
 class CustomerLoginSerializer(serializers.Serializer):
     phone = serializers.CharField()
     password = serializers.CharField(write_only=True)
+    fcm_token = serializers.CharField(required=False, allow_blank=True)
 
 
 class SalonSerializer(serializers.ModelSerializer):

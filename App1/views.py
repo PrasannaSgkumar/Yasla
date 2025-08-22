@@ -40,7 +40,7 @@ class UserLoginView(APIView):
         if serializer.is_valid():
             phone = serializer.validated_data['phone']
             password = serializer.validated_data['password']
-            fcm_token = request.data.get('fcm_token')
+            fcm_token = serializer.validated_data.get('fcm_token', None)
 
             try:
                 user = User.objects.get(phone=phone)
@@ -56,9 +56,9 @@ class UserLoginView(APIView):
                     "message": "Invalid email/phone or password"
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
-            # if fcm_token:
-            #     user.fcm_token = fcm_token
-            #     user.save()
+            if fcm_token:
+                user.fcm_token = fcm_token
+                user.save(update_fields=['fcm_token'])
 
             return Response({
                 "status": "success",
@@ -87,6 +87,7 @@ class CustomerLoginView(APIView):
         if serializer.is_valid():
             phone = serializer.validated_data['phone']
             password = serializer.validated_data['password']
+            fcm_token = serializer.validated_data.get('fcm_token', None)
             
 
             try:
@@ -103,9 +104,9 @@ class CustomerLoginView(APIView):
                     "message": "Invalid phone number or password"
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
-            # if fcm_token:
-            #     customer.fcm_token = fcm_token
-            #     customer.save()
+            if fcm_token:
+                customer.fcm_token = fcm_token
+                customer.save(update_fields=['fcm_token'])
 
             return Response({
                 "status": "success",
@@ -803,6 +804,7 @@ class AppointmentView(APIView):
             # Set computed values
             data["bill_amount"] = total_cost
             data["end_datetime"] = start_datetime + total_duration
+            data["duration"]=total_duration
             otp_code = str(random.randint(1000, 9999))
             data["otp_code"] = otp_code
 
@@ -844,51 +846,62 @@ class AppointmentDetailView(APIView):
             "message": "Appointment retrieved successfully",
             "data": serializer.data
         })
+    
+
 
     def put(self, request, id):
         appointment = get_object_or_404(Appointment, id=id)
         data = request.data.copy()
         services_data = data.pop("appointment_services", None)
-        start_datetime = appointment.start_datetime  
+
+        # Existing values
+        start_datetime = appointment.start_datetime
+        duration = appointment.duration or timedelta()
+
+        # Flags to check which fields were sent
+        new_start_datetime = None
+        new_duration = None
+
+        # --- Parse start_datetime if sent ---
         if "start_datetime" in data:
             start_val = data["start_datetime"]
             if isinstance(start_val, datetime):
-                start_datetime = start_val
+                new_start_datetime = start_val
             elif isinstance(start_val, str):
                 parsed = parse_datetime(start_val)
                 if parsed:
-                    start_datetime = parsed
+                    new_start_datetime = parsed
                 else:
                     return Response({"error": "Invalid start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Handle duration
-        duration_minutes = None
+        # --- Parse duration if sent ---
         if "duration_minutes" in data:
             try:
-                duration_minutes = int(data["duration_minutes"])
+                new_duration = timedelta(minutes=int(data["duration_minutes"]))
             except (TypeError, ValueError):
                 return Response({"error": "duration_minutes must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
 
-       
-        end_datetime = appointment.end_datetime  
-        if start_datetime and duration_minutes:
-            end_datetime = start_datetime + timedelta(minutes=duration_minutes)
+        if new_start_datetime and not new_duration:
+            start_datetime = new_start_datetime
+            end_datetime = start_datetime + duration
 
-        # Overlap check only if both are new values
-        if start_datetime and duration_minutes:
-            stylist_id = data.get('stylist', appointment.stylist_id)
-            overlapping_appointments = Appointment.objects.filter(
-                stylist_id=stylist_id,
-                start_datetime__lt=end_datetime,
-                end_datetime__gt=start_datetime
-            ).exclude(id=appointment.id)
+        elif new_duration and not new_start_datetime:
+            duration = new_duration
+            end_datetime = start_datetime + duration
 
-            if overlapping_appointments.exists():
-                return Response({
-                    "error": "Stylist already has an appointment during this time."
-                }, status=status.HTTP_409_CONFLICT)
+        elif new_start_datetime and new_duration:
+            start_datetime = new_start_datetime
+            duration = new_duration
+            end_datetime = start_datetime + duration
 
-        # If services provided, validate and recalc cost
+        else:
+            
+            end_datetime = appointment.end_datetime
+
+        # Update request data
+        data["start_datetime"] = start_datetime
+        data["end_datetime"] = end_datetime
+        data["duration"] = duration
         if services_data is not None:
             if not services_data:
                 return Response({"error": "appointment_services cannot be empty."}, status=status.HTTP_400_BAD_REQUEST)
@@ -914,17 +927,10 @@ class AppointmentDetailView(APIView):
                 total_cost += availability.cost
 
             data["bill_amount"] = total_cost
-
-        # Ensure updated times are included in data
-        data["start_datetime"] = start_datetime
-        data["end_datetime"] = end_datetime
-
-        # Update appointment
         serializer = AppointmentSerializer(appointment, data=data, partial=True)
         if serializer.is_valid():
             updated_appointment = serializer.save()
 
-            # Replace services if new ones provided
             if services_data is not None:
                 updated_appointment.appointment_services.all().delete()
                 for service_obj in services_data:
@@ -944,6 +950,110 @@ class AppointmentDetailView(APIView):
                 "message": "Validation failed",
                 "errors": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+    # def put(self, request, id):
+    #     appointment = get_object_or_404(Appointment, id=id)
+    #     data = request.data.copy()
+    #     services_data = data.pop("appointment_services", None)
+    #     start_datetime = appointment.start_datetime  
+    #     duration = appointment.duration or timedelta()
+    #     new_start_datetime = None
+    #     new_duration = None
+    #     if "start_datetime" in data:
+    #         start_val = data["start_datetime"]
+    #         if isinstance(start_val, datetime):
+    #             start_datetime = start_val
+    #         elif isinstance(start_val, str):
+    #             parsed = parse_datetime(start_val)
+    #             if parsed:
+    #                 start_datetime = parsed
+    #             else:
+    #                 return Response({"error": "Invalid start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #     # Handle duration
+    #     duration_minutes = None
+    #     if "duration_minutes" in data:
+    #         try:
+    #             duration_minutes = int(data["duration_minutes"])
+    #         except (TypeError, ValueError):
+    #             return Response({"error": "duration_minutes must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+       
+    #     end_datetime = appointment.end_datetime  
+    #     if start_datetime and duration_minutes:
+    #         end_datetime = start_datetime + timedelta(minutes=duration_minutes)
+
+    #     # Overlap check only if both are new values
+    #     if start_datetime and duration_minutes:
+    #         stylist_id = data.get('stylist', appointment.stylist_id)
+    #         overlapping_appointments = Appointment.objects.filter(
+    #             stylist_id=stylist_id,
+    #             start_datetime__lt=end_datetime,
+    #             end_datetime__gt=start_datetime
+    #         ).exclude(id=appointment.id)
+
+    #         if overlapping_appointments.exists():
+    #             return Response({
+    #                 "error": "Stylist already has an appointment during this time."
+    #             }, status=status.HTTP_409_CONFLICT)
+
+    #     # If services provided, validate and recalc cost
+    #     if services_data is not None:
+    #         if not services_data:
+    #             return Response({"error": "appointment_services cannot be empty."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #         total_cost = 0
+    #         for service_obj in services_data:
+    #             service_id = service_obj.get("service")
+    #             if not service_id:
+    #                 return Response({"error": "Missing service ID in appointment_services."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #             branch = data.get("branch", appointment.branch_id)
+    #             salon = data.get("salon", appointment.salon_id)
+
+    #             if branch:
+    #                 availability = SalonServiceAvailability.objects.filter(branch=branch, service=service_id).first()
+    #             else:
+    #                 availability = SalonServiceAvailability.objects.filter(salon=salon, service=service_id).first()
+
+    #             if not availability:
+    #                 return Response({"error": f"Service ID {service_id} is not available in the selected salon/branch."},
+    #                                 status=status.HTTP_400_BAD_REQUEST)
+
+    #             total_cost += availability.cost
+
+    #         data["bill_amount"] = total_cost
+
+    #     # Ensure updated times are included in data
+    #     data["start_datetime"] = start_datetime
+    #     data["end_datetime"] = end_datetime
+
+    #     # Update appointment
+    #     serializer = AppointmentSerializer(appointment, data=data, partial=True)
+    #     if serializer.is_valid():
+    #         updated_appointment = serializer.save()
+
+    #         # Replace services if new ones provided
+    #         if services_data is not None:
+    #             updated_appointment.appointment_services.all().delete()
+    #             for service_obj in services_data:
+    #                 AppointmentService.objects.create(
+    #                     appointment=updated_appointment,
+    #                     service_id=service_obj["service"]
+    #                 )
+
+    #         return Response({
+    #             "status": "success",
+    #             "message": "Appointment updated successfully",
+    #             "data": AppointmentSerializer(updated_appointment).data
+    #         })
+    #     else:
+    #         return Response({
+    #             "status": "error",
+    #             "message": "Validation failed",
+    #             "errors": serializer.errors
+    #         }, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -3032,7 +3142,7 @@ def view_appointment(request, id):
     })
 
 def logout_user(request):
-    
+    print(1234)
     request.session.flush()
     logout(request)
     messages.success(request, "You have been logged out.")
@@ -3142,7 +3252,6 @@ def payment_verify(request):
             }
         )
     except razorpay.errors.SignatureVerificationError as e:
-        # Persist what we can for audit/debug
         try:
             appt = Appointment.objects.get(razorpay_order_id=order_id)
             appt.razorpay_payment_id = payment_id
@@ -3393,3 +3502,154 @@ class PaymentVerifyAPI(View):
 
         return JsonResponse({"message": "Payment Successful!"}, status=200)
 
+
+
+
+
+def adminforgotpassword(request):
+    return render(request, 'admin/forgotpassword.html')
+
+
+
+
+import random
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.core.mail import send_mail
+from django.contrib.auth.hashers import make_password
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from .models import Admin_User
+
+# Temporary storage (you can use cache or DB in production)
+OTP_STORE = {}
+
+def adminforgotpassword(request):
+    return render(request, 'admin/forgotpassword.html')
+
+
+@csrf_exempt
+def send_otp(request):
+    """Send OTP to email"""
+    if request.method == "POST":
+        email = request.POST.get("email")
+
+        try:
+            user = Admin_User.objects.get(email=email)
+        except Admin_User.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Email not registered"})
+
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+
+        # Save in memory (in production use cache or DB)
+        OTP_STORE[email] = {"otp": otp, "created": timezone.now()}
+
+        # Send email
+        subject = "Password Reset OTP - Yasla Salon"
+        message = f"Your OTP for password reset is: {otp}\nIt is valid for 10 minutes."
+        send_mail(subject, message, 'yaslaglobalinfra@gmail.com', [email])
+
+        return JsonResponse({"success": True, "message": "OTP sent to email"})
+
+    return JsonResponse({"success": False, "message": "Invalid request"})
+
+
+@csrf_exempt
+def verify_otp(request):
+    """Verify OTP"""
+    if request.method == "POST":
+        email = request.POST.get("email")
+        otp = request.POST.get("otp")
+
+        if email not in OTP_STORE:
+            return JsonResponse({"success": False, "message": "OTP expired or not requested"})
+
+        if OTP_STORE[email]["otp"] == otp:
+            return JsonResponse({"success": True, "message": "OTP verified"})
+        else:
+            return JsonResponse({"success": False, "message": "Invalid OTP"})
+
+    return JsonResponse({"success": False, "message": "Invalid request"})
+
+
+@csrf_exempt
+def reset_password(request):
+    """Reset password after OTP verification"""
+    if request.method == "POST":
+        email = request.POST.get("email")
+        new_password = request.POST.get("newPassword")
+
+        try:
+            user = Admin_User.objects.get(email=email)
+            user.password = make_password(new_password)
+            user.save()
+
+            # Remove OTP after use
+            if email in OTP_STORE:
+                del OTP_STORE[email]
+
+            return JsonResponse({"success": True, "message": "Password reset successful"})
+
+        except Admin_User.DoesNotExist:
+            return JsonResponse({"success": False, "message": "User not found"})
+
+    return JsonResponse({"success": False, "message": "Invalid request"})
+
+
+
+
+
+
+
+
+import requests
+from requests.auth import HTTPBasicAuth
+from django.conf import settings
+from django.http import JsonResponse
+
+def get_payment_settlement_details(request, payment_id):
+    """
+    Django view to fetch Razorpay payment settlement details.
+    Example: /razorpay/payment/pay_R5y16zaeClxBgK/
+    """
+    try:
+        # Build Razorpay API URL
+        url = f"https://api.razorpay.com/v1/payments/{payment_id}"
+
+        # Make API request with Basic Auth
+        response = requests.get(
+            url,
+            auth=HTTPBasicAuth(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+        )
+
+        # Parse JSON response
+        data = response.json()
+
+        # If Razorpay returned an error
+        if response.status_code != 200:
+            return JsonResponse({
+                "success": False,
+                "message": data.get("error", {}).get("description", "Unable to fetch payment details"),
+                "code": data.get("error", {}).get("code")
+            }, status=response.status_code)
+
+        # Extract important fields
+        settlement_status = data.get("settlement_status", "unknown")
+        status = data.get("status")
+        amount = data.get("amount") / 100  # Razorpay returns amount in paise
+        currency = data.get("currency")
+        order_id = data.get("order_id")
+
+        return JsonResponse({
+            "success": True,
+            "payment_id": payment_id,
+            "order_id": order_id,
+            "status": status,
+            "settlement_status": settlement_status,
+            "amount": amount,
+            "currency": currency
+        })
+
+    except Exception as e:
+        return JsonResponse({"success": False, "message": str(e)}, status=500)

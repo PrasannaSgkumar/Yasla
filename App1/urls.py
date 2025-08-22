@@ -2,6 +2,11 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
+    path('admin-forgotpassword/', adminforgotpassword, name='adminforgotpassword'),
+    path('razorpay/payment/<str:payment_id>/', get_payment_settlement_details, name='get_payment_settlement_details'),
+    path('admin-send-otp/', send_otp, name='send_otp'),
+    path('admin-verify-otp/', verify_otp, name='verify_otp'),
+    path('admin-reset-password/', reset_password, name='reset_password'),
     path('initiate/payment/<int:appointment_id>/', PaymentInitiateAPI.as_view(), name="payment_initiate"),
     path("payment/verify/", PaymentVerifyAPI.as_view(), name="payment_verify"),
     path('salons/', SalonView.as_view(), name='salon-list-create'),
