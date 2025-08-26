@@ -1,3 +1,4 @@
+import json
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from jsonschema import ValidationError
@@ -3423,9 +3424,11 @@ class PaymentVerifyAPI(View):
    
 
     def post(self, request):
+        print(1234)
         payment_id = request.POST.get("razorpay_payment_id")
         order_id   = request.POST.get("razorpay_order_id")
         signature  = request.POST.get("razorpay_signature")
+
 
         if not (payment_id and order_id and signature):
             return JsonResponse({"message": "Missing payment details"}, status=400)
@@ -3653,3 +3656,83 @@ def get_payment_settlement_details(request, payment_id):
 
     except Exception as e:
         return JsonResponse({"success": False, "message": str(e)}, status=500)
+
+
+
+class FavoriteSalonView(APIView):
+
+    def get_customer(self, customer_id):
+        try:
+            return Customer.objects.get(id=customer_id)
+        except Customer.DoesNotExist:
+            return None
+
+    # Get favorite salons
+    def get(self, request, customer_id):
+        customer = self.get_customer(customer_id)
+        if not customer:
+            return Response({"success": False, "message": "Customer not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        salons = customer.fav_salons.all()
+        serializer = SalonSerializer(salons, many=True)
+        return Response({"success": True, "favorites": serializer.data})
+
+    # Add single or multiple favorite salons
+    def post(self, request, customer_id):
+        customer = self.get_customer(customer_id)
+        if not customer:
+            return Response({"success": False, "message": "Customer not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        salon_ids = request.data.get("salon_id") or request.data.get("salons")
+        if not salon_ids:
+            return Response({"success": False, "message": "Salon ID(s) required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure it's always a list
+        if not isinstance(salon_ids, list):
+            salon_ids = [salon_ids]
+
+        added = []
+        not_found = []
+        for sid in salon_ids:
+            try:
+                salon = Salon.objects.get(id=sid)
+                customer.fav_salons.add(salon)
+                added.append(salon.salon_name)
+            except Salon.DoesNotExist:
+                not_found.append(sid)
+
+        return Response({
+            "success": True,
+            "added": added,
+            "not_found": not_found
+        })
+
+    # Remove single or multiple favorite salons
+    def delete(self, request, customer_id):
+        customer = self.get_customer(customer_id)
+        if not customer:
+            return Response({"success": False, "message": "Customer not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        salon_ids = request.data.get("salon_id") or request.data.get("salons")
+        if not salon_ids:
+            return Response({"success": False, "message": "Salon ID(s) required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Ensure it's always a list
+        if not isinstance(salon_ids, list):
+            salon_ids = [salon_ids]
+
+        removed = []
+        not_found = []
+        for sid in salon_ids:
+            try:
+                salon = Salon.objects.get(id=sid)
+                customer.fav_salons.remove(salon)
+                removed.append(salon.salon_name)
+            except Salon.DoesNotExist:
+                not_found.append(sid)
+
+        return Response({
+            "success": True,
+            "removed": removed,
+            "not_found": not_found
+        })

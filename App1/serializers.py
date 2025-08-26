@@ -18,6 +18,14 @@ class SalonSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class CustomerFavSalonSerializer(serializers.ModelSerializer):
+    fav_salons = SalonSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Customer
+        fields = ["id", "full_name", "fav_salons"]
+
+
 class SalonBranchSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalonBranch

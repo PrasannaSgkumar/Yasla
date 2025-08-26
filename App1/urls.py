@@ -78,6 +78,7 @@ urlpatterns = [
     path('register/vendor/', RegisterVendorAPIView.as_view(), name='register_vendor'),
     path('service-categories/', ServiceCategoryListView.as_view(), name='service_category_list'),
     path('api/services/', ServiceListView.as_view(), name='service_list'),
+    path("customer/<int:customer_id>/favorites/", FavoriteSalonView.as_view(), name="favorite_salons"),
   
     path('login', adminlogin, name="login"),
     path('dashboard', superadmin_dashboard, name="dashboard"),

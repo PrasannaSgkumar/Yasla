@@ -213,7 +213,7 @@ class SalonBranch(models.Model):
 class SalonGallery(models.Model):  # Media_ID
     salon = models.ForeignKey('Salon', on_delete=models.CASCADE, related_name='gallery')
     branch = models.ForeignKey('SalonBranch', on_delete=models.SET_NULL, null=True, blank=True, related_name='gallery')  # Optional: allows None for global salon images
-    image = models.ImageField(upload_to='salon_gallery/')  # Uploads to MEDIA_ROOT/salon_gallery/
+    image = models.ImageField(upload_to='salon_gallery/') 
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -242,7 +242,7 @@ class User(models.Model):
         default=UserRole.STYLIST
     )
 
-    profile_image = models.TextField(null=True, blank=True)
+    profile_image = models.ImageField(null=True, blank=True)
     status = models.CharField(max_length=50, default='Active')  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -272,7 +272,7 @@ class Customer(models.Model):
     phone = models.CharField(max_length=15, unique=True)
     password = models.CharField(max_length=255)  
     gender = models.CharField(max_length=20, choices=GenderChoices.choices, null=True, blank=True)
-    profile_image = models.TextField(null=True, blank=True) 
+    profile_image = models.ImageField(null=True, blank=True) 
     address = models.CharField(max_length=255, null=True, blank=True)
     city = models.CharField(max_length=100, null=True, blank=True)
     pincode = models.CharField(max_length=10, null=True, blank=True)
@@ -282,6 +282,7 @@ class Customer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     last_login = models.DateTimeField(null=True, blank=True)
     fcm_token=models.TextField(null=True, blank=True)
+    fav_salons = models.ManyToManyField(Salon, null=True, blank=True)
 
     def __str__(self):
         return self.full_name
