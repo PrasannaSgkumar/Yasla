@@ -26,7 +26,9 @@
     const host = window.location.host;
     const stylistId = 1;
 
-    const socket = new WebSocket("ws://localhost:8000/ws/appointments/1/");
+    const salonId = 1;
+const socket = new WebSocket(`ws://localhost:8000/ws/salon/${salonId}/`);
+
 
 
     socket.onopen = () => {

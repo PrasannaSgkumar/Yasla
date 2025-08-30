@@ -149,15 +149,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-
-# API Documentation
-
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
-
-# Optionally, configure OpenAPI documentation title, description, and version
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Service Operations API',
     'DESCRIPTION': 'Auto-generated API documentation for all endpoints',
@@ -165,8 +159,8 @@ SPECTACULAR_SETTINGS = {
     'CONTACT': {
         'email': 'support@example.com',
     },
-    'SERVE_INCLUDE_SCHEMA': False,  # Prevent exposing schema at /schema
-    'SERVE_SWAGGER_UI': True,  # Enable serving the Swagger UI template
+    'SERVE_INCLUDE_SCHEMA': False,  
+    'SERVE_SWAGGER_UI': True, 
 }
 
 
@@ -193,8 +187,6 @@ RAZORPAY_CALLBACK_URL = 'http://127.0.0.1:8000/payment-verify/'
 
 
 
-
-# If using Django with django-cors-headers
 CORS_ALLOW_HEADERS = [
     'x-rtb-fingerprint-id',  # Allow this header
     'content-type',

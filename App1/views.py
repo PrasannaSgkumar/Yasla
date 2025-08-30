@@ -801,8 +801,6 @@ class AppointmentView(APIView):
                 total_cost += availability.cost
                 total_duration += availability.completion_time
                 service_availabilities[service_id] = availability
-
-            # Set computed values
             data["bill_amount"] = total_cost
             data["end_datetime"] = start_datetime + total_duration
             data["duration"]=total_duration
@@ -939,7 +937,7 @@ class AppointmentDetailView(APIView):
                         appointment=updated_appointment,
                         service_id=service_obj["service"]
                     )
-
+            send_appointment_update(updated_appointment)
             return Response({
                 "status": "success",
                 "message": "Appointment updated successfully",
