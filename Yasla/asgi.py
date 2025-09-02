@@ -36,7 +36,7 @@ from App1.routing import websocket_urlpatterns
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Yasla.settings")
 
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),   # <-- use directly
+    "http": get_asgi_application(),  
     "websocket": AuthMiddlewareStack(
         URLRouter(websocket_urlpatterns)
     ),

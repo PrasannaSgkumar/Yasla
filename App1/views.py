@@ -1195,13 +1195,14 @@ class PaymentVerifyView(APIView):
             }
             client.utility.verify_payment_signature(params_dict)
 
-            # Fetch payment details to confirm status
+            
             payment = client.payment.fetch(razorpay_payment_id)
 
             if payment.get("status") == "captured":
                 # Update appointment
                 appointment = Appointment.objects.get(razorpay_order_id=razorpay_order_id)
                 appointment.payment_status = Appointment.PaymentStatusChoices.PAID
+                appointment.status=Appointment.BookingStatusChoices.CONFIRMED
                 appointment.save()
                 return Response({"message": "Payment successful"}, status=status.HTTP_200_OK)
             else:

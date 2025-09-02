@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -27,15 +28,17 @@
     const stylistId = 1;
 
     const salonId = 1;
-const socket = new WebSocket(`ws://localhost:8000/ws/salon/${salonId}/`);
+const ws = new WebSocket("ws://yaslaservice.com:81/ws/salon/1/");
 
 
 
-    socket.onopen = () => {
+
+
+    ws.onopen = () => {
       console.log("WebSocket connected");
     };
 
-    socket.onmessage = (e) => {
+    ws.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
         console.log("Message received:", data);
@@ -59,11 +62,11 @@ const socket = new WebSocket(`ws://localhost:8000/ws/salon/${salonId}/`);
       }
     };
 
-    socket.onerror = (e) => {
+    ws.onerror = (e) => {
       console.error("WebSocket error", e);
     };
 
-    socket.onclose = (e) => {
+    ws.onclose = (e) => {
       console.log("WebSocket closed unexpectedly", e);
     };
   </script>
