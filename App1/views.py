@@ -750,43 +750,59 @@ class AppointmentView(APIView):
             "data": serializer.data
         })
 
-
     def post(self, request):
         data = request.data.copy()
         services_data = data.pop("appointment_services", [])
         stylist_id = data.get('stylist')
         start_datetime = parse_datetime(data.get('start_datetime'))
-      
-        
-       
-        if not services_data:
-            return Response({"error": "appointment_services is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not start_datetime:
+            return Response({"error": "Invalid or missing start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check for overlapping appointments (exclude Cancelled & Declined)
         overlapping_appointments = Appointment.objects.filter(
             stylist_id=stylist_id,
             start_datetime=start_datetime
-            
+        ).exclude(
+            status__in=[Appointment.BookingStatusChoices.CANCELLED, Appointment.BookingStatusChoices.DECLINED]
         )
 
         if overlapping_appointments.exists():
             return Response({
                 "error": "Stylist already has an appointment during this time."
             }, status=status.HTTP_409_CONFLICT)
-        try:
-            
-            start_datetime = parse_datetime(data.get("start_datetime"))
-            if not start_datetime:
-                return Response({"error": "Invalid or missing start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Calculate total cost and duration
+        try:
+            # Handle Offline Booking case
+            if data.get("status") == Appointment.BookingStatusChoices.OFFLINE_BOOKING:
+                data["bill_amount"] = 0
+                data["end_datetime"] = start_datetime   # 👈 could also add a fixed slot duration if needed
+                data["duration"] = timedelta(minutes=30)  # 👈 example: block 30 min
+                otp_code = str(random.randint(1000, 9999))
+                data["otp_code"] = otp_code
+
+                serializer = AppointmentSerializer(data=data)
+                if serializer.is_valid():
+                    appointment = serializer.save()
+                    send_appointment_update(appointment)
+                    return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            # ---------- Normal Booking Flow ----------
+            if not services_data:
+                return Response({"error": "appointment_services is required."}, status=status.HTTP_400_BAD_REQUEST)
+
             total_cost = 0
             total_duration = timedelta()
             service_availabilities = {}
+
             for service_obj in services_data:
                 service_id = service_obj.get("service")
                 if not service_id:
-                    return Response({"error": "Missing service ID in appointment_services."}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"error": "Missing service ID in appointment_services."},
+                                    status=status.HTTP_400_BAD_REQUEST)
 
-                # Check for branch or salon
                 branch = data.get("branch")
                 salon = data.get("salon")
                 if branch:
@@ -801,13 +817,13 @@ class AppointmentView(APIView):
                 total_cost += availability.cost
                 total_duration += availability.completion_time
                 service_availabilities[service_id] = availability
+
             data["bill_amount"] = total_cost
             data["end_datetime"] = start_datetime + total_duration
-            data["duration"]=total_duration
+            data["duration"] = total_duration
             otp_code = str(random.randint(1000, 9999))
             data["otp_code"] = otp_code
 
-            # Serialize and save
             serializer = AppointmentSerializer(data=data)
             if serializer.is_valid():
                 appointment = serializer.save()
@@ -817,13 +833,11 @@ class AppointmentView(APIView):
                 for service_obj in services_data:
                     service_id = service_obj["service"]
                     availability = service_availabilities[service_id]
-                    print(int(availability.completion_time.total_seconds() // 60))
                     AppointmentService.objects.create(
                         appointment=appointment,
                         service_id=service_id,
                         price=availability.cost,
-                        duration_min = int(availability.completion_time.total_seconds() // 60)
-
+                        duration_min=int(availability.completion_time.total_seconds() // 60)
                     )
 
                 return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
@@ -832,6 +846,7 @@ class AppointmentView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
@@ -873,7 +888,6 @@ class AppointmentDetailView(APIView):
                 else:
                     return Response({"error": "Invalid start_datetime."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # --- Parse duration if sent ---
         if "duration_minutes" in data:
             try:
                 new_duration = timedelta(minutes=int(data["duration_minutes"]))
@@ -1213,6 +1227,46 @@ class PaymentVerifyView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
+# class PaymentVerifyView(APIView):
+#     def post(self, request):
+#         try:
+#             razorpay_order_id = request.data.get("razorpay_order_id")
+#             razorpay_payment_id = request.data.get("razorpay_payment_id")
+#             razorpay_signature = request.data.get("razorpay_signature")
+
+#             # Verify payment signature (include signature here)
+#             params_dict = {
+#                 'razorpay_order_id': razorpay_order_id,
+#                 'razorpay_payment_id': razorpay_payment_id,
+#                 'razorpay_signature': razorpay_signature
+#             }
+#             client.utility.verify_payment_signature(params_dict)
+
+#             # Fetch payment from Razorpay
+#             payment = client.payment.fetch(razorpay_payment_id)
+
+#             if payment.get("status") == "captured":
+#                 appointment = Appointment.objects.get(razorpay_order_id=razorpay_order_id)
+#                 appointment.payment_status = Appointment.PaymentStatusChoices.PAID
+#                 appointment.status = Appointment.BookingStatusChoices.CONFIRMED
+#                 appointment.razorpay_payment_id = razorpay_payment_id
+#                 appointment.razorpay_signature = razorpay_signature
+#                 appointment.payment_verified = True
+#                 appointment.payment_time = timezone.now()
+#                 appointment.save()
+
+#                 return Response({"message": "Payment successful"}, status=status.HTTP_200_OK)
+#             else:
+#                 return Response({"message": "Payment not captured"}, status=status.HTTP_400_BAD_REQUEST)
+
+#         except SignatureVerificationError:
+#             return Response({"error": "Invalid payment signature"}, status=status.HTTP_400_BAD_REQUEST)
+#         except Appointment.DoesNotExist:
+#             return Response({"error": "Appointment not found"}, status=status.HTTP_404_NOT_FOUND)
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # @method_decorator(csrf_exempt, name='dispatch')
@@ -3495,12 +3549,13 @@ class PaymentVerifyAPI(View):
         appt.payment_verified = True
         appt.payment_time = payment_time
         appt.payment_status = Appointment.PaymentStatusChoices.PAID
+        appt.status = Appointment.BookingStatusChoices.CONFIRMED
         mapped_mode = _map_method_to_mode(method)
         if mapped_mode:
             appt.payment_mode = mapped_mode
         appt.refund_status = refund_status or ""
         appt.save(update_fields=["razorpay_payment_id", "razorpay_signature", "payment_verified",
-                                 "payment_time", "payment_status", "payment_mode", "refund_status"])
+                                 "payment_time", "payment_status", "payment_mode", "refund_status", "status"])
 
         return JsonResponse({"message": "Payment Successful!"}, status=200)
 

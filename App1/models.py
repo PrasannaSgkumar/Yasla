@@ -361,6 +361,7 @@ class Appointment(models.Model):
         CANCELLED = 'Cancelled', 'Cancelled'
         Accepted=  'Accepted', 'Accepted'
         Declined=  'Declined', 'Declined'
+        OFFLINE_BOOKING = 'Offline Booking', 'Offline Booking'
 
     status = models.CharField(max_length=20, choices=BookingStatusChoices.choices,
                               default=BookingStatusChoices.PENDING)
