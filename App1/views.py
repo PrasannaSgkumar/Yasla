@@ -764,7 +764,7 @@ class AppointmentView(APIView):
             stylist_id=stylist_id,
             start_datetime=start_datetime
         ).exclude(
-            status__in=[Appointment.BookingStatusChoices.CANCELLED, Appointment.BookingStatusChoices.DECLINED]
+            status__in=[Appointment.BookingStatusChoices.CANCELLED, Appointment.BookingStatusChoices.Declined]
         )
 
         if overlapping_appointments.exists():
@@ -785,7 +785,10 @@ class AppointmentView(APIView):
                 if serializer.is_valid():
                     appointment = serializer.save()
                     send_appointment_update(appointment)
-                    return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
+                    return Response({
+                    "message": "Offline booking created successfully.",
+                    "data": AppointmentSerializer(appointment).data
+                }, status=status.HTTP_201_CREATED)
                 else:
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
