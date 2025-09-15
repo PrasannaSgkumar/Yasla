@@ -773,18 +773,25 @@ class AppointmentView(APIView):
             }, status=status.HTTP_409_CONFLICT)
 
         try:
-            # Handle Offline Booking case
             if data.get("status") == Appointment.BookingStatusChoices.OFFLINE_BOOKING:
+                start_datetime = parse_datetime(data.get("start_datetime"))
+                end_datetime = parse_datetime(data.get("end_datetime"))
+
+                if not start_datetime or not end_datetime:
+                    return Response({"error": "start_datetime and end_datetime are required."}, status=status.HTTP_400_BAD_REQUEST)
+                
                 data["bill_amount"] = 0
-                data["end_datetime"] = start_datetime   # 👈 could also add a fixed slot duration if needed
-                data["duration"] = timedelta(minutes=30)  # 👈 example: block 30 min
+                data["start_datetime"] = start_datetime
+                data["end_datetime"] = end_datetime
+              
+                data.pop("duration", None)
                 otp_code = str(random.randint(1000, 9999))
                 data["otp_code"] = otp_code
 
                 serializer = AppointmentSerializer(data=data)
                 if serializer.is_valid():
                     appointment = serializer.save()
-                    send_appointment_update(appointment)
+                   
                     return Response({
                     "message": "Offline booking created successfully.",
                     "data": AppointmentSerializer(appointment).data
@@ -3207,57 +3214,98 @@ def logout_user(request):
     return redirect('login')
     
 # views.py
-from django.shortcuts import render, redirect
-from django.http import JsonResponse, HttpResponseBadRequest
-from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
 from django.conf import settings
 from django.utils import timezone
-import razorpay
+from App1.ccavenue import encrypt, decrypt
+from urllib.parse import quote_plus
 
-from .models import Appointment  # Ensure this model has: bill_amount, customer, razorpay_order_id, payment_status
 
 def payment_page(request, appointment_id):
     try:
         appt = Appointment.objects.select_related("customer").get(id=appointment_id)
     except Appointment.DoesNotExist:
-        return render(request, "error.html", {"message": "Appointment not found"})
+        return render(request, "error.html", {"message": "Appointment does not exist."})
 
-    amount_paise = int(round(float(appt.bill_amount) * 100))
+    
+    if request.method == "POST":
+        return render(request, "error.html", {"message": "Invalid direct POST to payment page."})
+    merchant_id = "4402508"
+    access_code = "AVEO83MI78AU08OEUA"
+    working_key = "DF205DA7B1DE7085107BE65FC5ADDFA1"
 
-    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    amount = str(appt.bill_amount)
+    order_id = f"appt-{appointment_id}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
 
-    receipt = f"appt-{appointment_id}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+    redirect_url = request.build_absolute_uri("/ccavenue/response/")
+    cancel_url   = request.build_absolute_uri("/ccavenue/cancel/")
 
-    order = client.order.create(
-        {
-            "amount": amount_paise,
-            "currency": "INR",
-            "payment_capture": 1,
-            "receipt": receipt,
-            "notes": {
-                "appointment_id": str(appointment_id),
-                "customer_name": getattr(appt.customer, "full_name", "") or "",
-                "customer_email": getattr(appt.customer, "email", "") or "",
-                # 👇 force the mobile number you provided
-                "customer_phone": "8296061293",
-            },
-        }
+    data = (
+        f"merchant_id={merchant_id}"
+        f"&order_id={order_id}"
+        f"&currency=INR"
+        f"&amount={amount}"
+        f"&redirect_url={quote_plus(redirect_url)}"
+        f"&cancel_url={quote_plus(cancel_url)}"
+        f"&language=EN"
+        f"&billing_name={appt.customer.full_name}"
+        f"&billing_email={appt.customer.email}"
+        f"&billing_tel=8296061293"
     )
 
-    appt.razorpay_order_id = order["id"]
-    appt.save(update_fields=["razorpay_order_id"])
+  
 
-    context = {
-        "order_id": order["id"],
-        "razorpay_key_id": settings.RAZORPAY_KEY_ID,
-        "amount_paise": amount_paise,
-        "amount_rupees": appt.bill_amount,
-        "customer_name": getattr(appt.customer, "full_name", "") or "Customer",
-        "customer_email": getattr(appt.customer, "email", "") or "",
-        # 👇 force number into template too
-        "customer_contact": "8296061293",
-    }
-    return render(request, "admin/razorpay_payment.html", context)
+    # --- Encrypt ---
+    enc_request = encrypt(data, working_key)
+   
+
+    # --- Pass to template ---
+    return render(request, "admin/ccavenue_payment.html", {
+        "enc_request": enc_request,
+        "access_code": access_code,
+        "ccavenue_url": "https://secure.ccavenue.com/transaction/transaction.do?command=initiateTransaction",
+    })
+
+
+
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from .ccavenue import decrypt
+
+@csrf_exempt
+def ccavenue_response(request):
+    enc_response = request.POST.get("encResp")
+    working_key = "1CB02E7FC0E96AADF18E3AC0CE80D7A9"
+
+    if not enc_response:
+        return JsonResponse({"message": "Missing response"}, status=400)
+
+    try:
+        response_str = decrypt(enc_response, working_key)
+        response_data = dict(item.split("=") for item in response_str.split("&"))
+
+        order_id = response_data.get("order_id")
+        order_status = response_data.get("order_status")  # Success | Aborted | Failure
+        tracking_id = response_data.get("tracking_id")
+
+        try:
+            appt = Appointment.objects.get(razorpay_order_id=order_id)  # 👈 rename field for ccavenue_order_id
+        except Appointment.DoesNotExist:
+            return JsonResponse({"message": "Appointment not found"}, status=404)
+
+        if order_status == "Success":
+            appt.payment_verified = True
+            appt.payment_status = Appointment.PaymentStatusChoices.PAID
+        else:
+            appt.payment_verified = False
+            appt.payment_status = Appointment.PaymentStatusChoices.UNPAID
+
+        appt.save(update_fields=["payment_verified", "payment_status"])
+        return JsonResponse({"message": f"Payment {order_status}", "data": response_data})
+    except Exception as e:
+        return JsonResponse({"message": f"Decryption failed: {e}"}, status=500)
 
 
 

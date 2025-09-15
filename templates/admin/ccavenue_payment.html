@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CC Avenue Payment</title>
+</head>
+<body>
+  <p>Redirecting to CC Avenue...</p>
+  <form method="post" name="redirect"
+        action="{{ ccavenue_url }}">
+    <input type="hidden" name="encRequest" value="{{ enc_request }}">
+    <input type="hidden" name="access_code" value="{{ access_code }}">
+  </form>
+  <script>
+    document.redirect.submit();
+  </script>
+</body>
+</html>
